@@ -1,0 +1,39 @@
+
+DEFINE TEMP-TABLE ttTest
+  FIELD Token AS CHARACTER.
+
+DEFINE INPUT  PARAMETER ipchrCadena AS CHARACTER  NO-UNDO.
+DEFINE OUTPUT PARAMETER TABLE FOR ttTest.
+
+DEFINE VARIABLE vintI AS INTEGER    NO-UNDO.
+
+DO vintI = 1 TO NUM-ENTRIES(ipchrCadena):
+  CREATE ttTest.
+  ASSIGN ttTest.Token = ENTRY(vintI,ipchrCadena).
+END.
+
+PROCEDURE OutTable:
+    DEFINE INPUT  PARAMETER ipchrCadena AS CHARACTER  NO-UNDO.
+    DEFINE OUTPUT PARAMETER TABLE FOR ttTest.
+
+    DEFINE VARIABLE vintI AS INTEGER    NO-UNDO.
+
+    DO vintI = 1 TO NUM-ENTRIES(ipchrCadena):
+      CREATE ttTest.
+      ASSIGN ttTest.Token = ENTRY(vintI,ipchrCadena).
+    END.
+END PROCEDURE.
+
+PROCEDURE InTable:
+    DEFINE INPUT PARAMETER TABLE FOR ttTest.
+    DEFINE OUTPUT PARAMETER opchrCadena AS CHARACTER  NO-UNDO.
+
+    FOR EACH ttTest:
+      ASSIGN opchrCadena = opchrCadena + "," + ttTest.Token.
+    END.
+END PROCEDURE.
+
+PROCEDURE OutParam:
+    DEFINE INPUT-OUTPUT  PARAMETER iopchrCadena AS CHARACTER  NO-UNDO.
+
+END PROCEDURE.
