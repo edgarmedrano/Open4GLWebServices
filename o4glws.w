@@ -280,23 +280,35 @@ DEFINE FRAME DEFAULT-FRAME
          SIZE 84.8 BY 12.91
          DEFAULT-BUTTON btnCancel.
 
-DEFINE FRAME fraBegin
-     edtBegin AT ROW 1.95 COL 50 NO-LABEL NO-TAB-STOP 
-     imgBegin AT ROW 2.43 COL 5
+DEFINE FRAME fraEndSuccess
+     edtEndSuccess AT ROW 5.52 COL 44 NO-LABEL NO-TAB-STOP 
+     imgSucces AT ROW 1.95 COL 2
+     RECT-3 AT ROW 1.95 COL 43
+     "You completed the webservice!" VIEW-AS TEXT
+          SIZE 38 BY .95 AT ROW 3.86 COL 44
+     "Congratulations!" VIEW-AS TEXT
+          SIZE 38 BY .95 AT ROW 2.67 COL 44
+    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 1 ROW 1
+         SIZE 84 BY 10.14.
+
+DEFINE FRAME fraLoad
+     radLoad AT ROW 1.95 COL 3 NO-LABEL
+     filLoadFile AT ROW 4.57 COL 4 COLON-ALIGNED NO-LABEL
+     btnLoadFile AT ROW 4.57 COL 36
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
          SIZE 84.6 BY 10.14.
 
-DEFINE FRAME fraEndError
-     imgError AT ROW 1.95 COL 2
-     RECT-4 AT ROW 1.95 COL 43
-     "Go Back or press Cancel." VIEW-AS TEXT
-          SIZE 30 BY 1.19 AT ROW 5.05 COL 44
-     "You have not completed the" VIEW-AS TEXT
-          SIZE 38 BY .95 AT ROW 2.43 COL 44
-     "webservice!" VIEW-AS TEXT
-          SIZE 38 BY .95 AT ROW 3.86 COL 44
+DEFINE FRAME fraGenerate
+     tglWSDL AT ROW 1.48 COL 4
+     tglProgram AT ROW 2.67 COL 4
+     cboTemplate AT ROW 3.86 COL 16 COLON-ALIGNED
+     tglSave AT ROW 5.29 COL 4
+     filSave AT ROW 6.24 COL 6 COLON-ALIGNED NO-LABEL
+     btnSave AT ROW 6.24 COL 40
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
@@ -322,39 +334,27 @@ DEFINE FRAME fraSettings
          AT COL 1 ROW 1
          SIZE 84 BY 10.14.
 
-DEFINE FRAME fraGenerate
-     tglWSDL AT ROW 1.48 COL 4
-     tglProgram AT ROW 2.67 COL 4
-     cboTemplate AT ROW 3.86 COL 16 COLON-ALIGNED
-     tglSave AT ROW 5.29 COL 4
-     filSave AT ROW 6.24 COL 6 COLON-ALIGNED NO-LABEL
-     btnSave AT ROW 6.24 COL 40
-    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
-         SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 1 ROW 1
-         SIZE 84 BY 10.14.
-
-DEFINE FRAME fraLoad
-     radLoad AT ROW 1.95 COL 3 NO-LABEL
-     filLoadFile AT ROW 4.57 COL 4 COLON-ALIGNED NO-LABEL
-     btnLoadFile AT ROW 4.57 COL 36
-    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
-         SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 1 ROW 1
-         SIZE 84.6 BY 10.14.
-
-DEFINE FRAME fraEndSuccess
-     edtEndSuccess AT ROW 5.52 COL 44 NO-LABEL NO-TAB-STOP 
-     imgSucces AT ROW 1.95 COL 2
-     RECT-3 AT ROW 1.95 COL 43
-     "Congratulations!" VIEW-AS TEXT
-          SIZE 38 BY .95 AT ROW 2.67 COL 44
-     "You completed the webservice!" VIEW-AS TEXT
+DEFINE FRAME fraEndError
+     imgError AT ROW 1.95 COL 2
+     RECT-4 AT ROW 1.95 COL 43
+     "Go Back or press Cancel." VIEW-AS TEXT
+          SIZE 30 BY 1.19 AT ROW 5.05 COL 44
+     "You have not completed the" VIEW-AS TEXT
+          SIZE 38 BY .95 AT ROW 2.43 COL 44
+     "webservice!" VIEW-AS TEXT
           SIZE 38 BY .95 AT ROW 3.86 COL 44
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
          SIZE 84 BY 10.14.
+
+DEFINE FRAME fraBegin
+     edtBegin AT ROW 1.95 COL 50 NO-LABEL NO-TAB-STOP 
+     imgBegin AT ROW 2.43 COL 5
+    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 1 ROW 1
+         SIZE 84.6 BY 10.14.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -420,12 +420,12 @@ ASSIGN FRAME fraBegin:FRAME = FRAME DEFAULT-FRAME:HANDLE
 
 DEFINE VARIABLE XXTABVALXX AS LOGICAL NO-UNDO.
 
-ASSIGN XXTABVALXX = FRAME fraEndError:MOVE-BEFORE-TAB-ITEM (btnCancel:HANDLE IN FRAME DEFAULT-FRAME)
-       XXTABVALXX = FRAME fraSettings:MOVE-BEFORE-TAB-ITEM (FRAME fraEndError:HANDLE)
-       XXTABVALXX = FRAME fraGenerate:MOVE-BEFORE-TAB-ITEM (FRAME fraSettings:HANDLE)
-       XXTABVALXX = FRAME fraLoad:MOVE-BEFORE-TAB-ITEM (FRAME fraGenerate:HANDLE)
-       XXTABVALXX = FRAME fraBegin:MOVE-BEFORE-TAB-ITEM (FRAME fraLoad:HANDLE)
-       XXTABVALXX = FRAME fraEndSuccess:MOVE-BEFORE-TAB-ITEM (FRAME fraBegin:HANDLE)
+ASSIGN XXTABVALXX = FRAME fraEndSuccess:MOVE-BEFORE-TAB-ITEM (btnCancel:HANDLE IN FRAME DEFAULT-FRAME)
+       XXTABVALXX = FRAME fraLoad:MOVE-BEFORE-TAB-ITEM (FRAME fraEndSuccess:HANDLE)
+       XXTABVALXX = FRAME fraGenerate:MOVE-BEFORE-TAB-ITEM (FRAME fraLoad:HANDLE)
+       XXTABVALXX = FRAME fraSettings:MOVE-BEFORE-TAB-ITEM (FRAME fraGenerate:HANDLE)
+       XXTABVALXX = FRAME fraEndError:MOVE-BEFORE-TAB-ITEM (FRAME fraSettings:HANDLE)
+       XXTABVALXX = FRAME fraBegin:MOVE-BEFORE-TAB-ITEM (FRAME fraEndError:HANDLE)
 /* END-ASSIGN-TABS */.
 
 /* SETTINGS FOR FRAME fraBegin
@@ -681,6 +681,11 @@ DO:
         MESSAGE "Project file is not valid!" VIEW-AS ALERT-BOX.
         RETURN.
       END.
+    END.
+    ELSE
+    DO:
+        MESSAGE "File not found!" VIEW-AS ALERT-BOX.
+        RETURN.
     END.
   END.
 

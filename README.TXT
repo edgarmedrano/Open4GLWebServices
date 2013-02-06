@@ -34,6 +34,10 @@ TODO
 
 HISTORY
 
+2009.10.22  Version 0.3
+BUGFIX: Some datatypes where not well implemented and cannot be handled by Axis 1.1
+BUGFIX: Adapter.p was not generating the call to procedure adapter before calling subprocedure
+
 2006.05.01  Version 0.2 beta
 BUGFIX: The message saying "Unable to use Namespace: []" was removed
 BUGFIX: The malformed webservice address is now correct

@@ -151,7 +151,11 @@ DEFINE STREAM strFile.
     END. /** for each ttmethod **/
   END. /** for each ttProcedure **/
 
-	/*Codigo posterior a la identificacion*/
+  /*Discard unknown methods and nodes*/
+  {&WRITE-CODE} "            WHEN ""multiRef"" THEN~n".
+  {&WRITE-CODE} "            DO:~n". 
+  {&WRITE-CODE} "              /*IGNORE*/~n".
+  {&WRITE-CODE} "            END.~n".
   {&WRITE-CODE} "            OTHERWISE~n".
   {&WRITE-CODE} "            DO:~n". 
   {&WRITE-CODE} "              vhndResponseMessage = createFault(vhndResponseBody,""soap:Server.UnknownMethod"",""The specified method is unknown."",THIS-PROCEDURE:FILE-NAME,vchrEnvelopeNS).~n".
@@ -311,8 +315,8 @@ DEFINE STREAM strFile.
                 NO-LOCK
                 BY ttParam.iSeq:
                 {&WRITE-CODE} SUBSTITUTE(
-                                "   getInTable(iphndRequestMessage,""&1Array"",(BUFFER &1:HANDLE)).~n"
-                              , ttProcedure.cName + "_" + ttParam.cName).
+                                "   getInTable(iphndRequestMessage,""&1"",(BUFFER &2:HANDLE)).~n"
+                              ,ttParam.cName, ttProcedure.cName + "_" + ttParam.cName).
               END. /** for each ttparam **/
 
               {&WRITE-CODE} "~n".
@@ -322,37 +326,44 @@ DEFINE STREAM strFile.
           ASSIGN vchrComma = " ".
           IF ttMethod.cName <> "" THEN
           DO:
-            {&WRITE-CODE} SUBSTITUTE("   RUN &1(iphndRequestMessage,iphndResponseMessage).~n",ttProcedure.cName).
-            {&WRITE-CODE} SUBSTITUTE("   RUN &1 IN vhnd&2 (~n",ttProcedure.cName + "_" + ttMethod.cName, ichNameSpace + STRING(ttMethod.iProcId)).
+            {&WRITE-CODE} SUBSTITUTE("   RUN &1Adapter(iphndRequestMessage,iphndResponseMessage).~n",ttProcedure.cName).
+            {&WRITE-CODE} SUBSTITUTE("   RUN &1 IN vhnd&2",ttMethod.cName, ichNameSpace + STRING(ttMethod.iProcId)).
           END.
           ELSE
           DO:
-            {&WRITE-CODE} SUBSTITUTE("   RUN &1 PERSISTENT SET vhnd&2 (~n", ttProcedure.cPath, ichNameSpace + STRING(ttMethod.iProcId)).
+            {&WRITE-CODE} SUBSTITUTE("   RUN &1 PERSISTENT SET vhnd&2", ttProcedure.cPath, ichNameSpace + STRING(ttMethod.iProcId)).
           END.
 
-          FOR EACH ttParam 
+          IF CAN-FIND(FIRST ttParam 
             WHERE ttParam.iProcId = ttMethod.iProcId
-              AND ttParam.cMethodName = ttMethod.cName
-            NO-LOCK
-            BY ttParam.iSeq:
-              IF ttParam.cDataType = "TABLE" THEN
-              DO:
-                  {&WRITE-CODE} SUBSTITUTE("       &1&2 TABLE &3~n", vchrComma, ttParam.cDirection, ttProcedure.cName + "_" + ttParam.cName).
-              END.
-              ELSE
-              DO:
-                  IF ttParam.cDirection = "INPUT" THEN
+              AND ttParam.cMethodName = ttMethod.cName) THEN
+          DO:
+              {&WRITE-CODE} " (~n".
+              FOR EACH ttParam 
+                WHERE ttParam.iProcId = ttMethod.iProcId
+                  AND ttParam.cMethodName = ttMethod.cName
+                NO-LOCK
+                BY ttParam.iSeq:
+                  IF ttParam.cDataType = "TABLE" THEN
                   DO:
-                      {&WRITE-CODE} SUBSTITUTE("       &1getIn&2(iphndRequestMessage,""&3"")~n", vchrComma, ttParam.cDataType, (IF ttParam.cMethodName = "" THEN ttProcedure.cName + "_" ELSE "") + ttParam.cName).
+                      {&WRITE-CODE} SUBSTITUTE("       &1&2 TABLE &3~n", vchrComma, ttParam.cDirection, ttProcedure.cName + "_" + ttParam.cName).
                   END.
                   ELSE
                   DO:
-                      {&WRITE-CODE} SUBSTITUTE("       &1&2 &3~n", vchrComma, ttParam.cDirection, ttParam.cName).
+                      IF ttParam.cDirection = "INPUT" THEN
+                      DO:
+                          {&WRITE-CODE} SUBSTITUTE("       &1getIn&2(iphndRequestMessage,""&3"")~n", vchrComma, ttParam.cDataType, (IF ttParam.cMethodName = "" THEN ttProcedure.cName + "_" ELSE "") + ttParam.cName).
+                      END.
+                      ELSE
+                      DO:
+                          {&WRITE-CODE} SUBSTITUTE("       &1&2 &3~n", vchrComma, ttParam.cDirection, ttParam.cName).
+                      END.
                   END.
-              END.
-              ASSIGN vchrComma = ",".
-          END. /** for each ttparam **/
-          {&WRITE-CODE} "       ) NO-ERROR.~n".
+                  ASSIGN vchrComma = ",".
+              END. /** for each ttparam **/
+              {&WRITE-CODE} "       )".
+          END.
+          {&WRITE-CODE} " NO-ERROR.~n".
           {&WRITE-CODE} "~n".
 
           /*Copiar los valores de las variables de salida*/
@@ -372,7 +383,7 @@ DEFINE STREAM strFile.
                   IF ttParam.cDataType = "TABLE" THEN
                   DO:
                       /*{&WRITE-CODE} SUBSTITUTE("   setOutTable(iphndResponseMessage,""&1Array"",hnd&2).~n", (IF ttParam.cMethodName = "" THEN ttProcedure.cName + "_" ELSE "") + ttParam.cName, ttProcedure.cName + "_" + ttParam.cName).*/
-                      {&WRITE-CODE} SUBSTITUTE("   setOutTable(iphndResponseMessage,""&1Array"",(BUFFER &2:HANDLE)).~n", (IF ttParam.cMethodName = "" THEN ttProcedure.cName + "_" ELSE "") + ttParam.cName, ttProcedure.cName + "_" + ttParam.cName).
+                      {&WRITE-CODE} SUBSTITUTE("   setOutTable(iphndResponseMessage,""&1"",(BUFFER &2:HANDLE)).~n", ttParam.cName, ttProcedure.cName + "_" + ttParam.cName).
                   END.
                   ELSE
                   DO:

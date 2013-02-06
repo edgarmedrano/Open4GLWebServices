@@ -148,56 +148,6 @@ DEFINE VARIABLE vhaWSDLRoot             AS HANDLE       NO-UNDO.
       END. /** for each tttable **/
     END. /** for each ttProcedure **/
 
-    /** Complex Types used for Responses **/
-    /*
-    FOR EACH ttProcedure
-      NO-LOCK:
-      FOR EACH ttMethod
-        WHERE ttMethod.iProcId = ttProcedure.iProcId
-        NO-LOCK:
-          vhaWSDL:CREATE-NODE(vhaTemp, "s:complexType", "ELEMENT").
-          vhaTemp:SET-ATTRIBUTE("name", SUBSTITUTE("&1Result", ttProcedure.cName + (IF ttMethod.cName = "" THEN "" ELSE "_") + ttMethod.cName)).
-          vhaXMLNode:APPEND-CHILD(vhaTemp).
-          vhaWSDL:CREATE-NODE(vhaAll, "s:all", "ELEMENT").
-          vhaTemp:APPEND-CHILD(vhaAll).
-    
-          IF CAN-FIND(FIRST ttParam 
-              WHERE ttParam.iProcId = ttMethod.iProcId
-                AND (ttParam.cMethodName = ttMethod.cName
-                  OR ttParam.cMethodName = "")
-                AND ttParam.cDirection <> "INPUT") THEN
-          DO:                                    
-    
-              FOR EACH ttParam 
-                WHERE ttParam.iProcId = ttMethod.iProcId
-                  AND ttParam.cMethodName = ttMethod.cName
-                  AND ttParam.cDirection  <> "INPUT"
-                NO-LOCK
-                BY ttParam.cMethodName
-                BY ttParam.iSeq:
-                  vhaWSDL:CREATE-NODE(vhaTemp2, "s:element", "ELEMENT").
-                  vhaTemp2:SET-ATTRIBUTE("name", ttProcedure.cName + "_" + ttParam.cName).
-    
-                  IF ttParam.cDataType <> "TABLE" THEN
-                      vhaTemp2:SET-ATTRIBUTE("type", SUBSTITUTE("s:&1", GetWSDLDataType(INPUT ttParam.cDataType))).
-                  ELSE
-                      vhaTemp2:SET-ATTRIBUTE("type", SUBSTITUTE("s0:&1Array", ttProcedure.cName + "_" + ttParam.cName)).
-    
-                  vhaAll:APPEND-CHILD(vhaTemp2).
-              END. /** for each ttparam **/
-          END. /** can-find **/
-          ELSE 
-          DO:
-              vhaWSDL:CREATE-NODE(vhaTemp2, "s:element", "ELEMENT").
-              vhaTemp2:SET-ATTRIBUTE("name", "returnValue").
-              vhaTemp2:SET-ATTRIBUTE("type", "string").            
-              vhaAll:APPEND-CHILD(vhaTemp2).
-          END. /** else do **/
-    
-      END. /** for each ttmethod **/    
-    END.  /** for each ttProcedure **/
-    */
-
     /** Messages **/
     FOR EACH ttProcedure
       NO-LOCK:
@@ -206,11 +156,11 @@ DEFINE VARIABLE vhaWSDLRoot             AS HANDLE       NO-UNDO.
         NO-LOCK:
 
         /** Request **/
-        IF CAN-FIND(FIRST ttParam 
+        /*IF CAN-FIND(FIRST ttParam 
           WHERE ttParam.iProcId = ttMethod.iProcId
             AND (ttParam.cMethodName = ttMethod.cName
                 OR ttParam.cMethodName = "")
-            AND ttParam.cDirection <> "OUTPUT") THEN
+            AND ttParam.cDirection <> "OUTPUT") THEN*/
         DO:
           vhaWSDL:CREATE-NODE(vhaXMLParentNode, "message", "ELEMENT").
           vhaXMLParentNode:SET-ATTRIBUTE("name", ttProcedure.cName + (IF ttMethod.cName = "" THEN "" ELSE "_") + ttMethod.cName).
@@ -238,11 +188,11 @@ DEFINE VARIABLE vhaWSDLRoot             AS HANDLE       NO-UNDO.
         END.
 
         /** Response **/
-        IF CAN-FIND(FIRST ttParam 
+        /*IF CAN-FIND(FIRST ttParam 
           WHERE ttParam.iProcId = ttMethod.iProcId
             AND (ttParam.cMethodName = ttMethod.cName
                 OR ttParam.cMethodName = "")
-            AND ttParam.cDirection <> "INPUT") THEN
+            AND ttParam.cDirection <> "INPUT") THEN*/
         DO:
           vhaWSDL:CREATE-NODE(vhaXMLParentNode, "message", "ELEMENT").
           vhaXMLParentNode:SET-ATTRIBUTE("name", SUBSTITUTE("&1Response", ttProcedure.cName + (IF ttMethod.cName = "" THEN "" ELSE "_") + ttMethod.cName)).

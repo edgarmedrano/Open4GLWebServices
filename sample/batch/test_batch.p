@@ -107,6 +107,10 @@ PROCEDURE PROCESS-REQUEST:
               RUN TEST_OutTableAdapter(vhndRequestMessage,vhndResponseMessage) NO-ERROR.
               DELETE PROCEDURE vhndtest1 NO-ERROR.
             END.
+            WHEN "multiRef" THEN
+            DO:
+              /*IGNORE*/
+            END.
             OTHERWISE
             DO:
               vhndResponseMessage = createFault(vhndResponseBody,"soap:Server.UnknownMethod","The specified method is unknown.",THIS-PROCEDURE:FILE-NAME,vchrEnvelopeNS).
@@ -134,7 +138,7 @@ PROCEDURE TESTAdapter:
        ) NO-ERROR.
 
    /*Copiar los valores de las variables de salida*/
-   setOutTable(iphndResponseMessage,"TEST_ttTestArray",(BUFFER TEST_ttTest:HANDLE)).
+   setOutTable(iphndResponseMessage,"ttTest",(BUFFER TEST_ttTest:HANDLE)).
 
 END PROCEDURE.
 
@@ -146,10 +150,10 @@ PROCEDURE TEST_InTableAdapter:
    DEFINE VARIABLE opchrCadena AS CHARACTER    NO-UNDO.
 
    /*Inicializar tablas de entrada/salida*/
-   getInTable(iphndRequestMessage,"TEST_ttTestArray",(BUFFER TEST_ttTest:HANDLE)).
+   getInTable(iphndRequestMessage,"ttTest",(BUFFER TEST_ttTest:HANDLE)).
 
-   RUN TEST(iphndRequestMessage,iphndResponseMessage).
-   RUN TEST_InTable IN vhndtest1 (
+   RUN TESTAdapter(iphndRequestMessage,iphndResponseMessage).
+   RUN InTable IN vhndtest1 (
         INPUT TABLE TEST_ttTest
        ,OUTPUT opchrCadena
        ) NO-ERROR.
@@ -169,8 +173,8 @@ PROCEDURE TEST_OutParamAdapter:
    /*Inicializar valores de variables de entrada/salida*/
    iopchrCadena = getInCHARACTER(iphndRequestMessage,"iopchrCadena").
 
-   RUN TEST(iphndRequestMessage,iphndResponseMessage).
-   RUN TEST_OutParam IN vhndtest1 (
+   RUN TESTAdapter(iphndRequestMessage,iphndResponseMessage).
+   RUN OutParam IN vhndtest1 (
         INPUT-OUTPUT iopchrCadena
        ) NO-ERROR.
 
@@ -183,14 +187,14 @@ PROCEDURE TEST_OutTableAdapter:
     DEFINE  INPUT PARAMETER iphndRequestMessage  AS HANDLE     NO-UNDO.
     DEFINE  INPUT PARAMETER iphndResponseMessage AS HANDLE     NO-UNDO.
 
-   RUN TEST(iphndRequestMessage,iphndResponseMessage).
-   RUN TEST_OutTable IN vhndtest1 (
+   RUN TESTAdapter(iphndRequestMessage,iphndResponseMessage).
+   RUN OutTable IN vhndtest1 (
         getInCHARACTER(iphndRequestMessage,"ipchrString")
        ,OUTPUT TABLE TEST_ttTest
        ) NO-ERROR.
 
    /*Copiar los valores de las variables de salida*/
-   setOutTable(iphndResponseMessage,"ttTestArray",(BUFFER TEST_ttTest:HANDLE)).
+   setOutTable(iphndResponseMessage,"ttTest",(BUFFER TEST_ttTest:HANDLE)).
 
 END PROCEDURE.
 

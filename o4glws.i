@@ -12,11 +12,18 @@
 &IF DEFINED(O4GLWS_I_) = 0 &THEN
 &GLOBAL-DEFINE O4GLWS_I_ TRUE
 
+DEFINE VARIABLE vintO4GLWS_ID AS INTEGER    NO-UNDO INITIAL -1.
 
-/* Find the child node with the given name */
-FUNCTION findChild RETURNS HANDLE (INPUT iphndParent AS HANDLE, INPUT ipchrName AS CHARACTER):
+FUNCTION getNextId RETURNS CHARACTER ():
+  vintO4GLWS_ID = vintO4GLWS_ID + 1.
+  RETURN "id" + STRING(vintO4GLWS_ID). 
+END FUNCTION.       
+     
+
+/* Find the child node with the given name and id */
+FUNCTION findChildWithId RETURNS HANDLE (INPUT iphndParent AS HANDLE, INPUT ipchrName AS CHARACTER, INPUT ipchrId AS CHARACTER):
   DEFINE VARIABLE vintChild AS INTEGER    NO-UNDO.
-  DEFINE VARIABLE vhndChild AS HANDLE    NO-UNDO. 
+  DEFINE VARIABLE vhndChild AS HANDLE     NO-UNDO. 
   DEFINE VARIABLE vchrName  AS CHARACTER  NO-UNDO.
 
   CREATE X-NODEREF vhndChild.
@@ -24,25 +31,41 @@ FUNCTION findChild RETURNS HANDLE (INPUT iphndParent AS HANDLE, INPUT ipchrName 
   DO vintChild = 1 TO iphndParent:NUM-CHILDREN:
     IF iphndParent:GET-CHILD(vhndChild,vintChild) THEN
     DO:
-      IF vhndChild:NAME = ipchrName THEN
+      IF vhndChild:SUBTYPE = "ELEMENT" THEN
       DO:
-        RETURN vhndChild.
-      END.
+        IF vhndChild:NAME = ipchrName OR vhndChild:LOCAL-NAME = ipchrName THEN
+        DO:
+          IF ipchrId = ? THEN
+            RETURN vhndChild.
 
-      ASSIGN vchrName = 
-        IF NUM-ENTRIES(vhndChild:NAME,":") = 2 THEN 
-          ENTRY(2,vhndChild:NAME,":") 
-        ELSE 
-          vhndChild:NAME. 
+          IF vhndChild:GET-ATTRIBUTE("id") = ipchrId THEN
+            RETURN vhndChild.
+        END.
 
-      IF vchrName = ipchrName THEN
-      DO:
-        RETURN vhndChild.
+        ASSIGN vchrName = 
+          IF NUM-ENTRIES(vhndChild:NAME,":") = 2 THEN 
+            ENTRY(2,vhndChild:NAME,":") 
+          ELSE 
+            vhndChild:NAME. 
+
+        IF vchrName = ipchrName THEN
+        DO:
+          IF ipchrId = ? THEN
+            RETURN vhndChild.
+
+          IF vhndChild:GET-ATTRIBUTE("id") = ipchrId THEN
+            RETURN vhndChild.
+        END.        
       END.
     END.
   END.
 
   RETURN ?.
+END FUNCTION.
+
+/* Find the child node with the given name */
+FUNCTION findChild RETURNS HANDLE (INPUT iphndParent AS HANDLE, INPUT ipchrName AS CHARACTER):
+  RETURN findChildWithId(iphndParent,ipchrName,?).
 END FUNCTION.
 
 /* Creates a child node with the given name */
@@ -110,36 +133,89 @@ END FUNCTION.
 FUNCTION getInTable RETURNS LOGICAL (INPUT iphndMessage AS HANDLE, INPUT ipchrParamName AS CHARACTER, INPUT iphndBuffer AS HANDLE):
     DEFINE VARIABLE vhndQuery       AS HANDLE     NO-UNDO.
     DEFINE VARIABLE vhndTableNode   AS HANDLE     NO-UNDO. 
+    DEFINE VARIABLE vhndBodyNode    AS HANDLE     NO-UNDO. 
     DEFINE VARIABLE vhndRowNode     AS HANDLE     NO-UNDO. 
     DEFINE VARIABLE vhndFieldNode   AS HANDLE     NO-UNDO. 
     DEFINE VARIABLE vhndValueNode   AS HANDLE     NO-UNDO. 
     DEFINE VARIABLE vhndBufferField AS HANDLE     NO-UNDO.
     DEFINE VARIABLE vintI           AS INTEGER    NO-UNDO.
     DEFINE VARIABLE vintJ           AS INTEGER    NO-UNDO.
+    DEFINE VARIABLE vchrId          AS CHARACTER  NO-UNDO INITIAL "".
+    DEFINE VARIABLE vchrAux         AS CHARACTER  NO-UNDO.
 
     vhndTableNode = findChild(iphndMessage,ipchrParamName).
     IF VALID-HANDLE(vhndTableNode) THEN
     DO:
+        CREATE X-NODEREF vhndBodyNode.
         CREATE X-NODEREF vhndRowNode.
         CREATE X-NODEREF vhndFieldNode.
         CREATE X-NODEREF vhndValueNode.
 
-        /*Crear el registro*/
-        DO vintI = 1 TO vhndTableNode:NUM-CHILDREN:
+        iphndMessage:GET-PARENT(vhndBodyNode).
 
+        /*Create row*/
+        DO vintI = 1 TO vhndTableNode:NUM-CHILDREN:
            vhndTableNode:GET-CHILD(vhndRowNode,vintI).
-           iphndBuffer:BUFFER-CREATE().
-           DO vintJ = 1 TO vhndRowNode:NUM-CHILDREN:
-               vhndRowNode:GET-CHILD(vhndFieldNode,vintJ).
-               vhndBufferField = iphndBuffer:BUFFER-FIELD(vhndFieldNode:NAME).
-               IF vhndBufferField <> ? THEN 
+           
+           IF vhndRowNode:SUBTYPE = "ELEMENT" THEN
+           DO:
+             IF vhndRowNode:NAME = "item" OR vhndRowNode:LOCAL-NAME = "item" THEN
+             DO:
+               vchrId = vhndRowNode:GET-ATTRIBUTE("href").
+               IF vchrId <> "" THEN
                DO:
-                 IF vhndFieldNode:NUM-CHILDREN = 1 THEN
+                 IF NUM-ENTRIES(vchrId,"#") >= 2 THEN
                  DO:
-                   vhndFieldNode:GET-CHILD(vhndValueNode,1).
-                   vhndBufferField:BUFFER-VALUE = vhndValueNode:NODE-VALUE.
+                   vchrId = ENTRY(2,vchrId,"#").
                  END.
+
+                 vhndRowNode = findChildWithId(vhndBodyNode,"multiRef",vchrId).
                END.
+             END.
+
+             iphndBuffer:BUFFER-CREATE().
+             DO vintJ = 1 TO vhndRowNode:NUM-CHILDREN:
+                 vhndRowNode:GET-CHILD(vhndFieldNode,vintJ).
+                 IF vhndFieldNode:SUBTYPE = "ELEMENT" THEN
+                 DO:
+                   vhndBufferField = iphndBuffer:BUFFER-FIELD(
+                       IF vhndFieldNode:LOCAL-NAME <> "" THEN vhndFieldNode:LOCAL-NAME 
+                       ELSE vhndFieldNode:NAME).
+                   IF vhndBufferField <> ? THEN 
+                   DO:
+                     IF vhndFieldNode:NUM-CHILDREN = 1 THEN
+                     DO:
+                       vhndFieldNode:GET-CHILD(vhndValueNode,1).
+                       CASE (vhndBufferField:DATA-TYPE):
+                           /*
+                            WHEN "CHARACTER" 
+                         OR WHEN "COM-HANDLE"
+                         OR WHEN "HANDLE"
+                         OR WHEN "MEMPTR"
+                         OR WHEN "RAW"
+                         OR WHEN "ROWID"
+                         OR WHEN "WIDGET-HANDLE" THEN
+                           */
+                         WHEN "DATE" THEN
+                         DO:
+                           vchrAux = vhndValueNode:NODE-VALUE.
+                           vhndBufferField:BUFFER-VALUE = STRING(DATE(INTEGER(ENTRY(2,vchrAux,"-"))
+                                                                     ,INTEGER(ENTRY(3,vchrAux,"-"))
+                                                                     ,INTEGER(ENTRY(1,vchrAux,"-")))).
+                         END.
+                         WHEN "LOGICAL" THEN
+                         DO:
+                           vhndBufferField:BUFFER-VALUE = STRING(vhndValueNode:NODE-VALUE = "true").
+                         END.
+                         OTHERWISE
+                         DO:
+                           vhndBufferField:BUFFER-VALUE = vhndValueNode:NODE-VALUE.
+                         END.
+                       END CASE. /** ichProgressDataType **/
+                     END.
+                   END.
+                 END.
+             END.
            END.
         END.
     END.
@@ -184,7 +260,7 @@ FUNCTION setOutDecimal RETURNS LOGICAL (INPUT iphndMessage AS HANDLE, INPUT ipch
 END FUNCTION.
 
 FUNCTION setOutLogical RETURNS LOGICAL (INPUT iphndMessage AS HANDLE, INPUT ipchrParamName AS CHARACTER, INPUT iplogParamValue AS LOGICAL):
-    RETURN setOutCharacter(iphndMessage,ipchrParamName,STRING(iplogParamValue,"true/false")).
+    RETURN setOutCharacter(iphndMessage,ipchrParamName,TRIM(STRING(iplogParamValue,"true/false"))).
 END FUNCTION.
 
 FUNCTION setOutDate RETURNS LOGICAL (INPUT iphndMessage AS HANDLE, INPUT ipchrParamName AS CHARACTER, INPUT ipdatParamValue AS DATE):
@@ -193,18 +269,23 @@ FUNCTION setOutDate RETURNS LOGICAL (INPUT iphndMessage AS HANDLE, INPUT ipchrPa
                            + "-" 
                            + STRING(MONTH(ipdatParamValue),"99")
                            + "-"
-                           + STRING(DAY(ipdatParamValue),"9999")).
+                           + STRING(DAY(ipdatParamValue),"99")).
 END FUNCTION.
 
 FUNCTION setOutTable RETURNS LOGICAL (INPUT iphndMessage AS HANDLE, INPUT ipchrParamName AS CHARACTER, INPUT iphndBuffer AS HANDLE):
    DEFINE VARIABLE vhndQuery       AS HANDLE     NO-UNDO.
    DEFINE VARIABLE vhndTableNode   AS HANDLE     NO-UNDO. 
    DEFINE VARIABLE vhndDoc         AS HANDLE     NO-UNDO. 
+   DEFINE VARIABLE vhndBodyNode    AS HANDLE     NO-UNDO. 
+   DEFINE VARIABLE vlogBody        AS LOGICAL    NO-UNDO.
+   DEFINE VARIABLE vchrId          AS CHARACTER  NO-UNDO.
+   DEFINE VARIABLE vhndItemNode    AS HANDLE     NO-UNDO. 
    DEFINE VARIABLE vhndRowNode     AS HANDLE     NO-UNDO. 
    DEFINE VARIABLE vhndFieldNode   AS HANDLE     NO-UNDO. 
    DEFINE VARIABLE vhndValueNode   AS HANDLE     NO-UNDO. 
    DEFINE VARIABLE vhndBufferField AS HANDLE     NO-UNDO.
    DEFINE VARIABLE vintI           AS INTEGER    NO-UNDO.
+   DEFINE VARIABLE vintRows        AS INTEGER    NO-UNDO INITIAL 0.
    
    vhndTableNode = createChild(iphndMessage,ipchrParamName,"").
 
@@ -234,21 +315,81 @@ FUNCTION setOutTable RETURNS LOGICAL (INPUT iphndMessage AS HANDLE, INPUT ipchrP
    /* Get X-DOCUMENT handler */
    ASSIGN vhndDoc = iphndMessage:OWNER-DOCUMENT.
 
+   DEFINE VARIABLE vlogX AS LOGICAL    NO-UNDO.
+
+   CREATE X-NODEREF vhndBodyNode.
+   vlogBody = iphndMessage:GET-PARENT(vhndBodyNode).
+   IF vlogBody THEN
+   DO: 
+     IF vhndBodyNode:NAME = "Body" 
+       OR (NUM-ENTRIES(vhndBodyNode:NAME,":") = 2 
+         AND ENTRY(2,vhndBodyNode:NAME,":") = "Body") THEN
+       vlogBody = TRUE.
+     ELSE 
+       vlogBody = FALSE.
+   END.
+  
    /* Dump the data */
    repeatLoop:
    REPEAT:
        /** Get next record from query **/
        vhndQuery:GET-NEXT().
        IF vhndQuery:QUERY-OFF-END THEN LEAVE repeatLoop.
+         
+       vintRows = vintRows + 1. 
 
        /** Create parent node in XML **/
-       CREATE X-NODEREF vhndRowNode.
-       vhndDoc:CREATE-NODE(vhndRowNode,iphndBuffer:NAME,"ELEMENT").
-       vhndTableNode:APPEND-CHILD(vhndRowNode).
+       IF vlogBody THEN
+       DO:
+           vchrId = getNextId().
+           CREATE X-NODEREF vhndItemNode.
+           vhndDoc:CREATE-NODE(vhndItemNode,"item","ELEMENT").
+           vhndTableNode:APPEND-CHILD(vhndItemNode).
+           vhndItemNode:SET-ATTRIBUTE("href","#" + vchrId). 
+
+           CREATE X-NODEREF vhndRowNode.
+           vhndDoc:CREATE-NODE(vhndRowNode,"multiRef","ELEMENT").
+           vhndBodyNode:APPEND-CHILD(vhndRowNode).
+           vhndRowNode:SET-ATTRIBUTE("id",vchrId).
+       END.
+       ELSE
+       DO:
+           CREATE X-NODEREF vhndRowNode.
+           vhndDoc:CREATE-NODE(vhndRowNode,iphndBuffer:NAME,"ELEMENT").
+           vhndTableNode:APPEND-CHILD(vhndRowNode).
+       END.
+       
+       vhndRowNode:SET-ATTRIBUTE("root","0"). 
+       vhndRowNode:SET-ATTRIBUTE("encodingStyle","0"). 
+       vhndRowNode:SET-ATTRIBUTE("type",iphndBuffer:NAME). 
 
        REPEAT vintI = 1 TO iphndBuffer:NUM-FIELDS:
            vhndBufferField = iphndBuffer:BUFFER-FIELD(vintI).
 
+           CASE (vhndBufferField:DATA-TYPE):
+               /*
+                WHEN "CHARACTER" 
+             OR WHEN "COM-HANDLE"
+             OR WHEN "HANDLE"
+             OR WHEN "MEMPTR"
+             OR WHEN "RAW"
+             OR WHEN "ROWID"
+             OR WHEN "WIDGET-HANDLE" THEN
+               */
+             WHEN "DATE" THEN
+             DO:
+               setOutDate(vhndRowNode,vhndBufferField:NAME,vhndBufferField:BUFFER-VALUE).
+             END.
+             WHEN "LOGICAL" THEN
+             DO:
+               setOutLogical(vhndRowNode,vhndBufferField:NAME,vhndBufferField:BUFFER-VALUE).
+             END.
+             OTHERWISE
+             DO:
+               setOutCharacter(vhndRowNode,vhndBufferField:NAME,vhndBufferField:BUFFER-VALUE).
+             END.
+           END CASE.
+/*
            CREATE X-NODEREF vhndFieldNode.
            vhndDoc:CREATE-NODE(vhndFieldNode,vhndBufferField:NAME,"ELEMENT").
            vhndRowNode:APPEND-CHILD(vhndFieldNode).
@@ -257,9 +398,13 @@ FUNCTION setOutTable RETURNS LOGICAL (INPUT iphndMessage AS HANDLE, INPUT ipchrP
            vhndDoc:CREATE-NODE(vhndValueNode,"","TEXT").
            vhndFieldNode:APPEND-CHILD(vhndValueNode).
            vhndValueNode:NODE-VALUE = STRING(vhndBufferField:BUFFER-VALUE).
+           */
        END. 
    END. /** repeatLoop: **/
 
+   vhndTableNode:SET-ATTRIBUTE("type","Array").
+   vhndTableNode:SET-ATTRIBUTE("arrayType",iphndBuffer:NAME + "[" + STRING(vintRows) + "]").
+   
    vhndQuery:QUERY-CLOSE().
    DELETE OBJECT vhndQuery.
 

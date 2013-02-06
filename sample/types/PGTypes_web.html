@@ -1,0 +1,275 @@
+<script language="SpeedScript">
+{o4glws.i}
+
+DEFINE VARIABLE vhndRequestDoc   AS HANDLE    NO-UNDO. 
+DEFINE VARIABLE vhndResponseDoc  AS HANDLE    NO-UNDO.
+
+PROCEDURE OUTPUT-HEADERS:
+  IF WEB-CONTEXT:IS-XML THEN 
+  DO:
+    output-content-type("text/xml"). 
+  END.
+END.
+
+IF WEB-CONTEXT:IS-XML THEN 
+DO: 
+  CREATE X-DOCUMENT vhndRequestDoc. 
+  vhndRequestDoc = WEB-CONTEXT:X-DOCUMENT.
+  
+  RUN PROCESS-REQUEST(vhndRequestDoc,OUTPUT vhndResponseDoc).
+  vhndResponseDoc:SAVE("STREAM", "WebStream").
+
+  DELETE OBJECT vhndResponseDoc. 
+END.
+
+/*Declarar handles para super-procedures*/
+DEFINE VARIABLE vhndPGTypes1 AS HANDLE     NO-UNDO.
+
+PROCEDURE PROCESS-REQUEST:
+  DEFINE INPUT  PARAMETER vhndRequestDoc  AS HANDLE     NO-UNDO.
+  DEFINE OUTPUT PARAMETER vhndResponseDoc AS HANDLE     NO-UNDO.
+
+  DEFINE VARIABLE vintI AS INTEGER    NO-UNDO.
+  DEFINE VARIABLE vchrMessage         AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE vhndRequestEnv      AS HANDLE    NO-UNDO. 
+  DEFINE VARIABLE vhndResponseEnv     AS HANDLE    NO-UNDO. 
+  DEFINE VARIABLE vhndRequestHead     AS HANDLE    NO-UNDO. 
+  DEFINE VARIABLE vhndResponseHead    AS HANDLE    NO-UNDO. 
+  DEFINE VARIABLE vhndRequestBody     AS HANDLE    NO-UNDO. 
+  DEFINE VARIABLE vhndResponseBody    AS HANDLE    NO-UNDO. 
+  DEFINE VARIABLE vhndRequestMessage  AS HANDLE    NO-UNDO. 
+  DEFINE VARIABLE vhndResponseMessage AS HANDLE    NO-UNDO. 
+  DEFINE VARIABLE vchrEnvelopeNS      AS CHARACTER  NO-UNDO INITIAL "s".
+  DEFINE VARIABLE vchrMessageNS       AS CHARACTER  NO-UNDO INITIAL "n".
+  DEFINE VARIABLE vchrWebService      AS CHARACTER  NO-UNDO INITIAL "PGTypes".
+
+  vhndRequestEnv = findChild(vhndRequestDoc,"Envelope").
+  vhndRequestHead = findChild(vhndRequestEnv,"Header").
+  vhndRequestBody = findChild(vhndRequestEnv,"Body").
+
+  vhndResponseDoc = createResponse(vchrEnvelopeNS).
+  vhndResponseEnv = findChild(vhndResponseDoc,"Envelope").
+  vhndResponseHead = findChild(vhndResponseDoc,"Header").
+  vhndResponseBody = findChild(vhndResponseEnv,"Body").
+
+  IF NOT SECURITY-TEST(vhndRequestHead,"o4glws/sample/securityTemplate.p") THEN
+  DO:
+    vhndResponseMessage = createFault(vhndResponseBody,"soap:Server.SecurityFault","The supplied parameters didn't pass the security test.",THIS-PROCEDURE:FILE-NAME,vchrEnvelopeNS).
+    RETURN.
+  END.
+
+  /*Buscar todas las llamadas*/
+  CREATE X-NODEREF vhndRequestMessage.
+  DO vintI = 1 TO vhndRequestBody:NUM-CHILDREN:
+      IF vhndRequestBody:GET-CHILD(vhndRequestMessage,vintI) THEN
+      DO:
+        IF vhndRequestMessage:SUBTYPE = "ELEMENT" THEN
+        DO:
+          /*Indentificar el metodo que sera llamado*/
+          vchrMessage = 
+             IF vhndRequestMessage:LOCAL-NAME = "" THEN 
+               vhndRequestMessage:NAME
+             ELSE
+               vhndRequestMessage:LOCAL-NAME.
+
+          CASE vchrMessage:
+            WHEN "TYPES" THEN
+            DO:
+              vhndResponseMessage = createChild(vhndResponseBody,"TYPESResponse",vchrMessageNS).
+              vhndResponseMessage:SET-ATTRIBUTE("xmlns:" + vchrMessageNS,vchrWebService).
+              RUN TYPESAdapter(vhndRequestMessage,vhndResponseMessage) NO-ERROR.
+              DELETE PROCEDURE vhndPGTypes1 NO-ERROR.
+            END.
+            WHEN "TYPES_proch" THEN
+            DO:
+              vhndResponseMessage = createChild(vhndResponseBody,"TYPES_prochResponse",vchrMessageNS).
+              vhndResponseMessage:SET-ATTRIBUTE("xmlns:" + vchrMessageNS,vchrWebService).
+              RUN TYPES_prochAdapter(vhndRequestMessage,vhndResponseMessage) NO-ERROR.
+              DELETE PROCEDURE vhndPGTypes1 NO-ERROR.
+            END.
+            WHEN "TYPES_prode" THEN
+            DO:
+              vhndResponseMessage = createChild(vhndResponseBody,"TYPES_prodeResponse",vchrMessageNS).
+              vhndResponseMessage:SET-ATTRIBUTE("xmlns:" + vchrMessageNS,vchrWebService).
+              RUN TYPES_prodeAdapter(vhndRequestMessage,vhndResponseMessage) NO-ERROR.
+              DELETE PROCEDURE vhndPGTypes1 NO-ERROR.
+            END.
+            WHEN "TYPES_prodt" THEN
+            DO:
+              vhndResponseMessage = createChild(vhndResponseBody,"TYPES_prodtResponse",vchrMessageNS).
+              vhndResponseMessage:SET-ATTRIBUTE("xmlns:" + vchrMessageNS,vchrWebService).
+              RUN TYPES_prodtAdapter(vhndRequestMessage,vhndResponseMessage) NO-ERROR.
+              DELETE PROCEDURE vhndPGTypes1 NO-ERROR.
+            END.
+            WHEN "TYPES_proint" THEN
+            DO:
+              vhndResponseMessage = createChild(vhndResponseBody,"TYPES_prointResponse",vchrMessageNS).
+              vhndResponseMessage:SET-ATTRIBUTE("xmlns:" + vchrMessageNS,vchrWebService).
+              RUN TYPES_prointAdapter(vhndRequestMessage,vhndResponseMessage) NO-ERROR.
+              DELETE PROCEDURE vhndPGTypes1 NO-ERROR.
+            END.
+            WHEN "TYPES_prolg" THEN
+            DO:
+              vhndResponseMessage = createChild(vhndResponseBody,"TYPES_prolgResponse",vchrMessageNS).
+              vhndResponseMessage:SET-ATTRIBUTE("xmlns:" + vchrMessageNS,vchrWebService).
+              RUN TYPES_prolgAdapter(vhndRequestMessage,vhndResponseMessage) NO-ERROR.
+              DELETE PROCEDURE vhndPGTypes1 NO-ERROR.
+            END.
+            WHEN "TYPES_prott" THEN
+            DO:
+              vhndResponseMessage = createChild(vhndResponseBody,"TYPES_prottResponse",vchrMessageNS).
+              vhndResponseMessage:SET-ATTRIBUTE("xmlns:" + vchrMessageNS,vchrWebService).
+              RUN TYPES_prottAdapter(vhndRequestMessage,vhndResponseMessage) NO-ERROR.
+              DELETE PROCEDURE vhndPGTypes1 NO-ERROR.
+            END.
+            WHEN "multiRef" THEN
+            DO:
+              /*IGNORE*/
+            END.
+            OTHERWISE
+            DO:
+              vhndResponseMessage = createFault(vhndResponseBody,"soap:Server.UnknownMethod","The specified method is unknown.",THIS-PROCEDURE:FILE-NAME,vchrEnvelopeNS).
+            END.
+          END CASE.
+        END.
+      END.
+  END.
+
+  DELETE OBJECT vhndRequestDoc. 
+END.
+
+/*Declarar aqui tablas temporales usadas por datos complejos*/
+DEFINE TEMP-TABLE TYPES_ttTest
+    FIELD fint AS INTEGER
+    FIELD fdec AS DECIMAL
+    FIELD fchr AS CHARACTER
+    FIELD fdat AS DATE
+    FIELD flog AS LOGICAL
+    .
+
+PROCEDURE TYPESAdapter:
+    DEFINE  INPUT PARAMETER iphndRequestMessage  AS HANDLE     NO-UNDO.
+    DEFINE  INPUT PARAMETER iphndResponseMessage AS HANDLE     NO-UNDO.
+
+   RUN o4glws/sample/types.p PERSISTENT SET vhndPGTypes1 NO-ERROR.
+
+END PROCEDURE.
+
+PROCEDURE TYPES_prochAdapter:
+    DEFINE  INPUT PARAMETER iphndRequestMessage  AS HANDLE     NO-UNDO.
+    DEFINE  INPUT PARAMETER iphndResponseMessage AS HANDLE     NO-UNDO.
+
+   /*Declarar variables de salida*/
+   DEFINE VARIABLE iopchr AS CHARACTER    NO-UNDO.
+
+   /*Inicializar valores de variables de entrada/salida*/
+   iopchr = getInCHARACTER(iphndRequestMessage,"iopchr").
+
+   RUN TYPESAdapter(iphndRequestMessage,iphndResponseMessage).
+   RUN proch IN vhndPGTypes1 (
+        INPUT-OUTPUT iopchr
+       ) NO-ERROR.
+
+   /*Copiar los valores de las variables de salida*/
+   setOutCHARACTER(iphndResponseMessage,"iopchr",iopchr).
+
+END PROCEDURE.
+
+PROCEDURE TYPES_prodeAdapter:
+    DEFINE  INPUT PARAMETER iphndRequestMessage  AS HANDLE     NO-UNDO.
+    DEFINE  INPUT PARAMETER iphndResponseMessage AS HANDLE     NO-UNDO.
+
+   /*Declarar variables de salida*/
+   DEFINE VARIABLE iopdec AS DECIMAL    NO-UNDO.
+
+   /*Inicializar valores de variables de entrada/salida*/
+   iopdec = getInDECIMAL(iphndRequestMessage,"iopdec").
+
+   RUN TYPESAdapter(iphndRequestMessage,iphndResponseMessage).
+   RUN prode IN vhndPGTypes1 (
+        INPUT-OUTPUT iopdec
+       ) NO-ERROR.
+
+   /*Copiar los valores de las variables de salida*/
+   setOutDECIMAL(iphndResponseMessage,"iopdec",iopdec).
+
+END PROCEDURE.
+
+PROCEDURE TYPES_prodtAdapter:
+    DEFINE  INPUT PARAMETER iphndRequestMessage  AS HANDLE     NO-UNDO.
+    DEFINE  INPUT PARAMETER iphndResponseMessage AS HANDLE     NO-UNDO.
+
+   /*Declarar variables de salida*/
+   DEFINE VARIABLE iopdat AS DATE    NO-UNDO.
+
+   /*Inicializar valores de variables de entrada/salida*/
+   iopdat = getInDATE(iphndRequestMessage,"iopdat").
+
+   RUN TYPESAdapter(iphndRequestMessage,iphndResponseMessage).
+   RUN prodt IN vhndPGTypes1 (
+        INPUT-OUTPUT iopdat
+       ) NO-ERROR.
+
+   /*Copiar los valores de las variables de salida*/
+   setOutDATE(iphndResponseMessage,"iopdat",iopdat).
+
+END PROCEDURE.
+
+PROCEDURE TYPES_prointAdapter:
+    DEFINE  INPUT PARAMETER iphndRequestMessage  AS HANDLE     NO-UNDO.
+    DEFINE  INPUT PARAMETER iphndResponseMessage AS HANDLE     NO-UNDO.
+
+   /*Declarar variables de salida*/
+   DEFINE VARIABLE iopint AS INTEGER    NO-UNDO.
+
+   /*Inicializar valores de variables de entrada/salida*/
+   iopint = getInINTEGER(iphndRequestMessage,"iopint").
+
+   RUN TYPESAdapter(iphndRequestMessage,iphndResponseMessage).
+   RUN proint IN vhndPGTypes1 (
+        INPUT-OUTPUT iopint
+       ) NO-ERROR.
+
+   /*Copiar los valores de las variables de salida*/
+   setOutINTEGER(iphndResponseMessage,"iopint",iopint).
+
+END PROCEDURE.
+
+PROCEDURE TYPES_prolgAdapter:
+    DEFINE  INPUT PARAMETER iphndRequestMessage  AS HANDLE     NO-UNDO.
+    DEFINE  INPUT PARAMETER iphndResponseMessage AS HANDLE     NO-UNDO.
+
+   /*Declarar variables de salida*/
+   DEFINE VARIABLE ioplog AS LOGICAL    NO-UNDO.
+
+   /*Inicializar valores de variables de entrada/salida*/
+   ioplog = getInLOGICAL(iphndRequestMessage,"ioplog").
+
+   RUN TYPESAdapter(iphndRequestMessage,iphndResponseMessage).
+   RUN prolg IN vhndPGTypes1 (
+        INPUT-OUTPUT ioplog
+       ) NO-ERROR.
+
+   /*Copiar los valores de las variables de salida*/
+   setOutLOGICAL(iphndResponseMessage,"ioplog",ioplog).
+
+END PROCEDURE.
+
+PROCEDURE TYPES_prottAdapter:
+    DEFINE  INPUT PARAMETER iphndRequestMessage  AS HANDLE     NO-UNDO.
+    DEFINE  INPUT PARAMETER iphndResponseMessage AS HANDLE     NO-UNDO.
+
+   /*Inicializar tablas de entrada/salida*/
+   getInTable(iphndRequestMessage,"ttTest",(BUFFER TYPES_ttTest:HANDLE)).
+
+   RUN TYPESAdapter(iphndRequestMessage,iphndResponseMessage).
+   RUN prott IN vhndPGTypes1 (
+        INPUT-OUTPUT TABLE TYPES_ttTest
+       ) NO-ERROR.
+
+   /*Copiar los valores de las variables de salida*/
+   setOutTable(iphndResponseMessage,"ttTest",(BUFFER TYPES_ttTest:HANDLE)).
+
+END PROCEDURE.
+
+</script>
