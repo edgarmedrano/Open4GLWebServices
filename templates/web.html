@@ -1,25 +1,23 @@
 {o4glws.i}
 
 DEFINE VARIABLE vhndRequestDoc   AS HANDLE    NO-UNDO. 
-DEFINE VARIABLE vhndResponseDoc  AS HANDLE    NO-UNDO. 
+DEFINE VARIABLE vhndResponseDoc  AS HANDLE    NO-UNDO.
 
 PROCEDURE OUTPUT-HEADERS:
   IF WEB-CONTEXT:IS-XML THEN 
   DO:
     output-content-type("text/xml"). 
-
-    CREATE X-DOCUMENT vhndRequestDoc. 
-    vhndRequestDoc = WEB-CONTEXT:X-DOCUMENT.
-
-    RUN PROCESS-REQUEST(vhndRequestDoc,OUTPUT vhndResponseDoc).
-
-    DELETE OBJECT vhndRequestDoc. 
   END.
 END.
 
 IF WEB-CONTEXT:IS-XML THEN 
 DO: 
+  CREATE X-DOCUMENT vhndRequestDoc. 
+  vhndRequestDoc = WEB-CONTEXT:X-DOCUMENT.
+  
+  RUN PROCESS-REQUEST(vhndRequestDoc,OUTPUT vhndResponseDoc).
   vhndResponseDoc:SAVE("STREAM", "WebStream").
 
+  DELETE OBJECT vhndRequestDoc. 
   DELETE OBJECT vhndResponseDoc. 
 END.

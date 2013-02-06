@@ -2,9 +2,11 @@
   File:               o4glws.I
   Description:        Common functions used by the webservices adapters.
   Author:             Lic. Edgar Medrano Perez
+                      edgarmedrano@gmail.com
   Created:            2005.06.18
-  Company:            
-  Notes:
+  Company:            Open 4GL webservices project
+                      http://o4glws.sourceforge.net
+  Notes:              
 ------------------------------------------------------------------------*/
 
 &IF DEFINED(O4GLWS_I_) = 0 &THEN
@@ -93,11 +95,24 @@ FUNCTION getInLogical RETURNS LOGICAL (INPUT iphndMessage AS HANDLE, INPUT ipchr
     RETURN (getInCharacter(iphndMessage,ipchrParamName) = "true").
 END FUNCTION.
 
+FUNCTION getInDate RETURNS DATE (INPUT iphndMessage AS HANDLE, INPUT ipchrParamName AS CHARACTER):
+    DEFINE VARIABLE vchrDate AS CHARACTER  NO-UNDO.
+
+    ASSIGN vchrDate = getInCharacter(iphndMessage,ipchrParamName).
+    IF NUM-ENTRIES(vchrDate,"-") >= 3 THEN
+    DO:
+      RETURN DATE(INT(ENTRY(2,vchrDate,"-")),INT(ENTRY(3,vchrDate,"-")),INT(ENTRY(1,vchrDate,"-"))).
+    END.
+
+    RETURN ?.
+END FUNCTION.
+
 FUNCTION getInTable RETURNS LOGICAL (INPUT iphndMessage AS HANDLE, INPUT ipchrParamName AS CHARACTER, INPUT iphndBuffer AS HANDLE):
     DEFINE VARIABLE vhndQuery       AS HANDLE     NO-UNDO.
     DEFINE VARIABLE vhndTableNode   AS HANDLE     NO-UNDO. 
     DEFINE VARIABLE vhndRowNode     AS HANDLE     NO-UNDO. 
-    DEFINE VARIABLE vhndColNode     AS HANDLE     NO-UNDO. 
+    DEFINE VARIABLE vhndFieldNode   AS HANDLE     NO-UNDO. 
+    DEFINE VARIABLE vhndValueNode   AS HANDLE     NO-UNDO. 
     DEFINE VARIABLE vhndBufferField AS HANDLE     NO-UNDO.
     DEFINE VARIABLE vintI           AS INTEGER    NO-UNDO.
     DEFINE VARIABLE vintJ           AS INTEGER    NO-UNDO.
@@ -106,7 +121,8 @@ FUNCTION getInTable RETURNS LOGICAL (INPUT iphndMessage AS HANDLE, INPUT ipchrPa
     IF VALID-HANDLE(vhndTableNode) THEN
     DO:
         CREATE X-NODEREF vhndRowNode.
-        CREATE X-NODEREF vhndColNode.
+        CREATE X-NODEREF vhndFieldNode.
+        CREATE X-NODEREF vhndValueNode.
 
         /*Crear el registro*/
         DO vintI = 1 TO vhndTableNode:NUM-CHILDREN:
@@ -114,11 +130,15 @@ FUNCTION getInTable RETURNS LOGICAL (INPUT iphndMessage AS HANDLE, INPUT ipchrPa
            vhndTableNode:GET-CHILD(vhndRowNode,vintI).
            iphndBuffer:BUFFER-CREATE().
            DO vintJ = 1 TO vhndRowNode:NUM-CHILDREN:
-               vhndRowNode:GET-CHILD(vhndColNode,vintJ).
-               vhndBufferField = iphndBuffer:BUFFER-FIELD(vhndColNode:NAME).
+               vhndRowNode:GET-CHILD(vhndFieldNode,vintJ).
+               vhndBufferField = iphndBuffer:BUFFER-FIELD(vhndFieldNode:NAME).
                IF vhndBufferField <> ? THEN 
                DO:
-                   vhndBufferField:BUFFER-VALUE = getInCharacter(vhndRowNode,vhndColNode:NAME).
+                 IF vhndFieldNode:NUM-CHILDREN = 1 THEN
+                 DO:
+                   vhndFieldNode:GET-CHILD(vhndValueNode,1).
+                   vhndBufferField:BUFFER-VALUE = vhndValueNode:NODE-VALUE.
+                 END.
                END.
            END.
         END.
@@ -167,11 +187,22 @@ FUNCTION setOutLogical RETURNS LOGICAL (INPUT iphndMessage AS HANDLE, INPUT ipch
     RETURN setOutCharacter(iphndMessage,ipchrParamName,STRING(iplogParamValue,"true/false")).
 END FUNCTION.
 
+FUNCTION setOutDate RETURNS LOGICAL (INPUT iphndMessage AS HANDLE, INPUT ipchrParamName AS CHARACTER, INPUT ipdatParamValue AS DATE):
+    RETURN setOutCharacter(iphndMessage,ipchrParamName,
+                           STRING(YEAR(ipdatParamValue),"9999")
+                           + "-" 
+                           + STRING(MONTH(ipdatParamValue),"99")
+                           + "-"
+                           + STRING(DAY(ipdatParamValue),"9999")).
+END FUNCTION.
+
 FUNCTION setOutTable RETURNS LOGICAL (INPUT iphndMessage AS HANDLE, INPUT ipchrParamName AS CHARACTER, INPUT iphndBuffer AS HANDLE):
    DEFINE VARIABLE vhndQuery       AS HANDLE     NO-UNDO.
    DEFINE VARIABLE vhndTableNode   AS HANDLE     NO-UNDO. 
+   DEFINE VARIABLE vhndDoc         AS HANDLE     NO-UNDO. 
    DEFINE VARIABLE vhndRowNode     AS HANDLE     NO-UNDO. 
-   DEFINE VARIABLE vhndColNode     AS HANDLE     NO-UNDO. 
+   DEFINE VARIABLE vhndFieldNode   AS HANDLE     NO-UNDO. 
+   DEFINE VARIABLE vhndValueNode   AS HANDLE     NO-UNDO. 
    DEFINE VARIABLE vhndBufferField AS HANDLE     NO-UNDO.
    DEFINE VARIABLE vintI           AS INTEGER    NO-UNDO.
    
@@ -200,6 +231,10 @@ FUNCTION setOutTable RETURNS LOGICAL (INPUT iphndMessage AS HANDLE, INPUT ipchrP
        leave.
    end.
 
+   /* Get X-DOCUMENT handler */
+   ASSIGN vhndDoc = iphndMessage:OWNER-DOCUMENT.
+
+   /* Dump the data */
    repeatLoop:
    REPEAT:
        /** Get next record from query **/
@@ -207,11 +242,21 @@ FUNCTION setOutTable RETURNS LOGICAL (INPUT iphndMessage AS HANDLE, INPUT ipchrP
        IF vhndQuery:QUERY-OFF-END THEN LEAVE repeatLoop.
 
        /** Create parent node in XML **/
-       vhndRowNode = createChild(vhndTableNode,iphndBuffer:name,"").
+       CREATE X-NODEREF vhndRowNode.
+       vhndDoc:CREATE-NODE(vhndRowNode,iphndBuffer:NAME,"ELEMENT").
+       vhndTableNode:APPEND-CHILD(vhndRowNode).
 
        REPEAT vintI = 1 TO iphndBuffer:NUM-FIELDS:
            vhndBufferField = iphndBuffer:BUFFER-FIELD(vintI).
-           setOutCharacter(vhndRowNode,vhndBufferField:NAME,STRING(vhndBufferField:BUFFER-VALUE)).
+
+           CREATE X-NODEREF vhndFieldNode.
+           vhndDoc:CREATE-NODE(vhndFieldNode,vhndBufferField:NAME,"ELEMENT").
+           vhndRowNode:APPEND-CHILD(vhndFieldNode).
+
+           CREATE X-NODEREF vhndValueNode.
+           vhndDoc:CREATE-NODE(vhndValueNode,"","TEXT").
+           vhndFieldNode:APPEND-CHILD(vhndValueNode).
+           vhndValueNode:NODE-VALUE = STRING(vhndBufferField:BUFFER-VALUE).
        END. 
    END. /** repeatLoop: **/
 
@@ -222,24 +267,73 @@ FUNCTION setOutTable RETURNS LOGICAL (INPUT iphndMessage AS HANDLE, INPUT ipchrP
 END FUNCTION.
 
 /* Builds the response document */
-FUNCTION createResponse RETURNS HANDLE:
+FUNCTION createResponse RETURNS HANDLE (
+    INPUT iphndNS AS CHARACTER):
     DEFINE VARIABLE vhndDoc        AS HANDLE    NO-UNDO. 
     DEFINE VARIABLE vhndEnvelope   AS HANDLE    NO-UNDO. 
     DEFINE VARIABLE vhndHead       AS HANDLE    NO-UNDO. 
     DEFINE VARIABLE vhndBody       AS HANDLE    NO-UNDO. 
     DEFINE VARIABLE vhndMessage     AS HANDLE    NO-UNDO. 
-    DEFINE VARIABLE vchrEnvelopeNS AS CHARACTER  NO-UNDO INITIAL "s".
 
     CREATE X-DOCUMENT vhndDoc. 
     
-    vhndEnvelope = createChild(vhndDoc,"Envelope",vchrEnvelopeNS).
-    vhndEnvelope:SET-ATTRIBUTE("xmlns:" + vchrEnvelopeNS,"http://www.w3.org/2001/06/soap-envelope").
+    vhndEnvelope = createChild(vhndDoc,"Envelope",iphndNS).
+    vhndEnvelope:SET-ATTRIBUTE("xmlns:" + iphndNS,"http://schemas.xmlsoap.org/soap/envelope/").
+    vhndEnvelope:SET-ATTRIBUTE("xmlns:xsi","http://www.w3.org/2001/XMLSchema-instance").
+    vhndEnvelope:SET-ATTRIBUTE("xmlns:xsd","http://www.w3.org/2001/XMLSchema").
 
-    vhndHead = createChild(vhndEnvelope,"Header",vchrEnvelopeNS).
-    vhndBody = createChild(vhndEnvelope,"Body",vchrEnvelopeNS).
+    vhndHead = createChild(vhndEnvelope,"Header",iphndNS).
+    vhndBody = createChild(vhndEnvelope,"Body",iphndNS).
 
     RETURN vhndDoc.
 END FUNCTION.
+
+/* Builds a fault message */
+FUNCTION createFault RETURNS HANDLE (
+    INPUT iphndNode AS HANDLE,
+    INPUT ipchrCode AS CHARACTER,
+    INPUT ipchrString AS CHARACTER,
+    INPUT ipchrActor AS CHARACTER,
+    INPUT ipchrNS AS CHARACTER):
+    DEFINE VARIABLE vhndFault AS HANDLE     NO-UNDO.
+
+    vhndFault = createChild(iphndNode,"Fault",ipchrNS).
+    setOutCharacter(vhndFault,"faultcode",ipchrCode).
+    setOutCharacter(vhndFault,"faultstring",ipchrString).
+    setOutCharacter(vhndFault,"faultactor",ipchrActor).
+
+    RETURN vhndFault.    
+END FUNCTION.
+
+/* Extracts date and time from a string with the format
+   "YYYY-MM-DDTHH:MM:SSZ" */
+FUNCTION extractDateTime RETURNS LOGICAL (
+   INPUT  ipchrDateTime AS CHARACTER
+  ,OUTPUT opdatDate     AS DATE
+  ,OUTPUT opintTime     AS INTEGER
+  ):
+  DEFINE VARIABLE vchrAux AS CHARACTER  NO-UNDO.
+
+  IF NUM-ENTRIES(ipchrDateTime,"T") >= 2 THEN
+  DO:
+    ASSIGN 
+      vchrAux = ENTRY(1,ipchrDateTime,"T")
+      opdatDate = DATE(INT(ENTRY(2,vchrAux,"-")),INT(ENTRY(3,vchrAux,"-")),INT(ENTRY(1,vchrAux,"-")))
+      vchrAux = ENTRY(2,ipchrDateTime,"T"). 
+
+    IF NUM-ENTRIES(vchrAux,":") >= 3 THEN
+    DO:
+      ASSIGN 
+        vchrAux = SUBSTRING(vchrAux,1,LENGTH(vchrAux) - 1)
+        opintTime = 3600 * INTEGER(ENTRY(1,vchrAux,":")) + 60 * INTEGER(ENTRY(2,vchrAux,":")) + DECIMAL(ENTRY(3,vchrAux,":")).
+    END.
+
+    RETURN TRUE.
+  END.
+
+  RETURN FALSE.
+END FUNCTION.
+
 
 /* Translates the header parameters and call the supplied 
    procedure to do the security test */
@@ -247,7 +341,12 @@ FUNCTION SECURITY-TEST RETURNS LOGICAL
   (INPUT iphndRequestHead AS HANDLE,
    INPUT ipchrProcedure AS CHARACTER):
   DEFINE VARIABLE vhndSecurity      AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE vhndTimestamp     AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE vchrExpires       AS CHARACTER  NO-UNDO.
+  DEFINE VARIABLE vdatExpires       AS DATE       NO-UNDO.
+  DEFINE VARIABLE vintExpires       AS INTEGER    NO-UNDO.
   DEFINE VARIABLE vhndUsernameToken AS HANDLE     NO-UNDO.
+  DEFINE VARIABLE vhndPassword      AS HANDLE     NO-UNDO.
   DEFINE VARIABLE vchrUsername      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE vchrPassword      AS CHARACTER  NO-UNDO.
   DEFINE VARIABLE vchrType          AS CHARACTER  NO-UNDO.
@@ -257,25 +356,52 @@ FUNCTION SECURITY-TEST RETURNS LOGICAL
   DEFINE VARIABLE vintCreated       AS INTEGER    NO-UNDO.
   DEFINE VARIABLE vlogValida        AS LOGICAL    NO-UNDO.
   
-  vhndSecurity = findChild(iphndRequestHead,"Security").
-  vhndUsernameToken = findChild(vhndSecurity,"UsernameToken").
-  vchrUsername = getInCharacter(vhndUsernameToken,"Username").
-  vchrPassword = getInCharacter(vhndUsernameToken,"Password").
-  vchrType = getInCharacter(vhndUsernameToken,"Type").
-  vchrNonce = getInCharacter(vhndUsernameToken,"Nonce").
-  vchrCreated = getInCharacter(vhndUsernameToken,"Created").
+  IF VALID-HANDLE(iphndRequestHead) THEN
+  DO:
+    vhndSecurity = findChild(iphndRequestHead,"Security").
+    IF VALID-HANDLE(vhndSecurity) THEN
+    DO:
+      vhndTimestamp = findChild(vhndSecurity,"Timestamp").
+      IF VALID-HANDLE(vhndTimestamp) THEN
+      DO:
+        vchrExpires = getInCharacter(vhndTimestamp,"Expires").
+        extractDateTime(vchrExpires, OUTPUT vdatExpires, OUTPUT vintExpires).
+      END.
 
-  /*Extract date and time*/
+      vhndUsernameToken = findChild(vhndSecurity,"UsernameToken").
+      IF VALID-HANDLE(vhndUsernameToken) THEN
+      DO:
+        vchrUsername = getInCharacter(vhndUsernameToken,"Username").
+        vchrPassword = getInCharacter(vhndUsernameToken,"Password").
+        vchrNonce    = getInCharacter(vhndUsernameToken,"Nonce").
+        vchrCreated  = getInCharacter(vhndUsernameToken,"Created").
 
-  RUN VALUE(ipchrProcedure) (
-     vchrUsername
-    ,vchrPassword
-    ,vchrType
-    ,vchrNonce
-    ,vdatCreated
-    ,vintCreated
-    ,OUTPUT vlogValida
-    ).
+        vhndPassword = findChild(vhndUsernameToken,"Password").
+        IF VALID-HANDLE(vhndPassword) THEN
+        DO:
+          vchrType = 
+            IF INDEX(vhndPassword:GET-ATTRIBUTE("Type"),"PasswordText") > 0 THEN
+              "PasswordText"
+            ELSE
+              "PasswordDigest".
+        END.
+
+        extractDateTime(vchrCreated, OUTPUT vdatCreated, OUTPUT vintCreated).
+
+        RUN VALUE(ipchrProcedure) (
+           vchrUsername
+          ,vchrPassword
+          ,vchrType
+          ,vchrNonce
+          ,vdatCreated
+          ,vintCreated
+          ,vdatExpires
+          ,vintExpires
+          ,OUTPUT vlogValida
+          ).
+      END.
+    END.
+  END.
 
   RETURN vlogValida.
 END FUNCTION.

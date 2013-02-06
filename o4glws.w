@@ -3,21 +3,15 @@
 &Scoped-define WINDOW-NAME winWizard
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS winWizard 
 /*------------------------------------------------------------------------
-
-  File: 
-
-  Description: 
-
-  Input Parameters:
-      <none>
-
-  Output Parameters:
-      <none>
-
-  Author: 
-
-  Created: 
-
+  File:               o4glws.w
+  Description:        Wizard to generate WSDL files, webservice adapters
+                      and project files.
+  Author:             Lic. Edgar Medrano Pérez 
+                      edgarmedrano@gmail.com
+  Created:            2005.06.14
+  Company:            Open 4GL webservices project
+                      http://o4glws.sourceforge.net
+  Notes:               
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.      */
 /*----------------------------------------------------------------------*/
@@ -144,7 +138,8 @@ DEFINE IMAGE imgBegin
      SIZE 42 BY 7.14.
 
 DEFINE IMAGE imgError
-     FILENAME "adeicon/blank":U
+     FILENAME "o4glws/error.gif":U
+     STRETCH-TO-FIT TRANSPARENT
      SIZE 39 BY 7.14.
 
 DEFINE RECTANGLE RECT-4
@@ -156,8 +151,9 @@ DEFINE VARIABLE edtEndSuccess AS CHARACTER INITIAL "Now you can use the generate
      SIZE 36 BY 2.38 NO-UNDO.
 
 DEFINE IMAGE imgSucces
-     FILENAME "adeicon/blank":U
-     SIZE 39 BY 7.14.
+     FILENAME "o4glws/success.gif":U
+     STRETCH-TO-FIT RETAIN-SHAPE TRANSPARENT
+     SIZE 41 BY 7.14.
 
 DEFINE RECTANGLE RECT-3
      EDGE-PIXELS 2 GRAPHIC-EDGE  NO-FILL 
@@ -261,6 +257,18 @@ DEFINE BROWSE broProcedures
 
 /* ************************  Frame Definitions  *********************** */
 
+DEFINE FRAME fraProcedures
+     edtProcedures AT ROW 1.48 COL 58 NO-LABEL NO-TAB-STOP 
+     broProcedures AT ROW 2.67 COL 6
+     btnDefProcedures AT ROW 6.48 COL 58
+     RECT-1 AT ROW 1.48 COL 4
+     "Procedures:" VIEW-AS TEXT
+          SIZE 21 BY .71 AT ROW 1.71 COL 6
+    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 1 ROW 1
+         SIZE 84.6 BY 10.14.
+
 DEFINE FRAME DEFAULT-FRAME
      btnCancel AT ROW 12.43 COL 32
      btnBack AT ROW 12.43 COL 45
@@ -272,6 +280,28 @@ DEFINE FRAME DEFAULT-FRAME
          SIZE 84.8 BY 12.91
          DEFAULT-BUTTON btnCancel.
 
+DEFINE FRAME fraBegin
+     edtBegin AT ROW 1.95 COL 50 NO-LABEL NO-TAB-STOP 
+     imgBegin AT ROW 2.43 COL 5
+    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 1 ROW 1
+         SIZE 84.6 BY 10.14.
+
+DEFINE FRAME fraEndError
+     imgError AT ROW 1.95 COL 2
+     RECT-4 AT ROW 1.95 COL 43
+     "Go Back or press Cancel." VIEW-AS TEXT
+          SIZE 30 BY 1.19 AT ROW 5.05 COL 44
+     "You have not completed the" VIEW-AS TEXT
+          SIZE 38 BY .95 AT ROW 2.43 COL 44
+     "webservice!" VIEW-AS TEXT
+          SIZE 38 BY .95 AT ROW 3.86 COL 44
+    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
+         SIDE-LABELS NO-UNDERLINE THREE-D 
+         AT COL 1 ROW 1
+         SIZE 84 BY 10.14.
+
 DEFINE FRAME fraSettings
      filName AT ROW 2.19 COL 3 COLON-ALIGNED NO-LABEL
      filDestination AT ROW 4.1 COL 3 COLON-ALIGNED NO-LABEL
@@ -279,14 +309,14 @@ DEFINE FRAME fraSettings
      filAddress AT ROW 6 COL 3 COLON-ALIGNED NO-LABEL
      filSecurity AT ROW 8.14 COL 3 COLON-ALIGNED NO-LABEL
      btnSecurity AT ROW 8.14 COL 41
-     "Security procedure:" VIEW-AS TEXT
-          SIZE 20 BY .95 AT ROW 7.19 COL 5
-     "Webservice name:" VIEW-AS TEXT
-          SIZE 22 BY .71 AT ROW 1.48 COL 5
      "Code destination:" VIEW-AS TEXT
           SIZE 22 BY .71 AT ROW 3.38 COL 5
      "Server address:" VIEW-AS TEXT
           SIZE 16 BY .71 AT ROW 5.29 COL 5
+     "Security procedure:" VIEW-AS TEXT
+          SIZE 20 BY .95 AT ROW 7.19 COL 5
+     "Webservice name:" VIEW-AS TEXT
+          SIZE 22 BY .71 AT ROW 1.48 COL 5
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
@@ -313,52 +343,18 @@ DEFINE FRAME fraLoad
          AT COL 1 ROW 1
          SIZE 84.6 BY 10.14.
 
-DEFINE FRAME fraBegin
-     edtBegin AT ROW 1.95 COL 50 NO-LABEL NO-TAB-STOP 
-     imgBegin AT ROW 2.43 COL 5
-    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
-         SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 1 ROW 1
-         SIZE 84.6 BY 10.14.
-
-DEFINE FRAME fraEndError
-     imgError AT ROW 1.95 COL 2
-     RECT-4 AT ROW 1.95 COL 43
-     "You have not completed the" VIEW-AS TEXT
-          SIZE 38 BY .95 AT ROW 2.43 COL 44
-     "webservice!" VIEW-AS TEXT
-          SIZE 38 BY .95 AT ROW 3.86 COL 44
-     "Go Back or press Cancel." VIEW-AS TEXT
-          SIZE 30 BY 1.19 AT ROW 5.05 COL 44
-    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
-         SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 1 ROW 1
-         SIZE 84 BY 10.14.
-
 DEFINE FRAME fraEndSuccess
      edtEndSuccess AT ROW 5.52 COL 44 NO-LABEL NO-TAB-STOP 
      imgSucces AT ROW 1.95 COL 2
      RECT-3 AT ROW 1.95 COL 43
-     "You completed the webservice!" VIEW-AS TEXT
-          SIZE 38 BY .95 AT ROW 3.86 COL 44
      "Congratulations!" VIEW-AS TEXT
           SIZE 38 BY .95 AT ROW 2.67 COL 44
+     "You completed the webservice!" VIEW-AS TEXT
+          SIZE 38 BY .95 AT ROW 3.86 COL 44
     WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
          SIDE-LABELS NO-UNDERLINE THREE-D 
          AT COL 1 ROW 1
          SIZE 84 BY 10.14.
-
-DEFINE FRAME fraProcedures
-     edtProcedures AT ROW 1.48 COL 58 NO-LABEL NO-TAB-STOP 
-     broProcedures AT ROW 2.67 COL 6
-     btnDefProcedures AT ROW 6.48 COL 58
-     RECT-1 AT ROW 1.48 COL 4
-     "Procedures:" VIEW-AS TEXT
-          SIZE 21 BY .71 AT ROW 1.71 COL 6
-    WITH 1 DOWN NO-BOX KEEP-TAB-ORDER OVERLAY 
-         SIDE-LABELS NO-UNDERLINE THREE-D 
-         AT COL 1 ROW 1
-         SIZE 84.6 BY 10.14.
 
 
 /* *********************** Procedure Settings ************************ */
@@ -424,12 +420,12 @@ ASSIGN FRAME fraBegin:FRAME = FRAME DEFAULT-FRAME:HANDLE
 
 DEFINE VARIABLE XXTABVALXX AS LOGICAL NO-UNDO.
 
-ASSIGN XXTABVALXX = FRAME fraSettings:MOVE-BEFORE-TAB-ITEM (btnCancel:HANDLE IN FRAME DEFAULT-FRAME)
+ASSIGN XXTABVALXX = FRAME fraEndError:MOVE-BEFORE-TAB-ITEM (btnCancel:HANDLE IN FRAME DEFAULT-FRAME)
+       XXTABVALXX = FRAME fraSettings:MOVE-BEFORE-TAB-ITEM (FRAME fraEndError:HANDLE)
        XXTABVALXX = FRAME fraGenerate:MOVE-BEFORE-TAB-ITEM (FRAME fraSettings:HANDLE)
        XXTABVALXX = FRAME fraLoad:MOVE-BEFORE-TAB-ITEM (FRAME fraGenerate:HANDLE)
        XXTABVALXX = FRAME fraBegin:MOVE-BEFORE-TAB-ITEM (FRAME fraLoad:HANDLE)
-       XXTABVALXX = FRAME fraEndError:MOVE-BEFORE-TAB-ITEM (FRAME fraBegin:HANDLE)
-       XXTABVALXX = FRAME fraEndSuccess:MOVE-BEFORE-TAB-ITEM (FRAME fraEndError:HANDLE)
+       XXTABVALXX = FRAME fraEndSuccess:MOVE-BEFORE-TAB-ITEM (FRAME fraBegin:HANDLE)
 /* END-ASSIGN-TABS */.
 
 /* SETTINGS FOR FRAME fraBegin
@@ -542,9 +538,13 @@ DO:
   IF tglWSDL:CHECKED THEN
   DO WITH FRAME fraSettings:
       ASSIGN 
+        filName
+        cboTemplate
+        filDestination
+        filAddress
         vchrName = filName
         vchrFile = filDestination + "~\" + vchrName + ".wsdl"
-        vchrAddress = filAddress + "~\" + vchrName.
+        vchrAddress = filAddress + "/" + vchrName + "_" + cboTemplate.
 
       RUN o4glws/WSDL.p (
           INPUT TABLE ttProcedure,
@@ -568,7 +568,10 @@ DO:
   IF tglProgram:CHECKED THEN
   DO WITH FRAME fraSettings:
       ASSIGN 
+        filName
         cboTemplate
+        filDestination
+        filSecurity
         vchrName = filName
         vchrFile = filDestination + "/" + filName + "_" + cboTemplate
         vchrSecurity = filSecurity
@@ -596,13 +599,15 @@ DO:
 
   IF tglSave:CHECKED THEN
   DO:
-      ASSIGN ERROR-STATUS:ERROR = FALSE.
+      ASSIGN 
+        filSave
+        ERROR-STATUS:ERROR = FALSE.
       CREATE X-DOCUMENT vhndProjectDoc. 
 
       ASSIGN vhndProjectChild = createChild(vhndProjectDoc,"project","").
       RUN SAVE-STATE(vhndProjectChild,OUTPUT vlogContinue).
 
-      vhndProjectDoc:SAVE("FILE",filSave:SCREEN-VALUE).
+      vhndProjectDoc:SAVE("FILE",filSave).
       DELETE OBJECT vhndProjectDoc. 
 
       IF ERROR-STATUS:ERROR THEN
@@ -617,7 +622,7 @@ DO:
       END.
   END.
 
-  IF NOT (tglWSDL OR tglProgram OR tglSave) THEN
+  IF NOT (tglWSDL:CHECKED OR tglProgram:CHECKED OR tglSave:CHECKED) THEN
   DO:
     MESSAGE "You did not select anything!".
     RETURN.

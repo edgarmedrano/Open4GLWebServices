@@ -1,26 +1,39 @@
+/*------------------------------------------------------------------------
+  File:               test.p
+  Description:        This is a sample procedure. 
+  Input Parameters:   ipchrString      A comma separated list
+  Output Parameters:  ttTest           A table containing the list
+                                       elements of ipchrString
+  Author:             Lic. Edgar Medrano Perez
+                      edgarmedrano@gmail.com
+  Created:            2005.06.25
+  Company:            Open 4GL webservices project
+                      http://o4glws.sourceforge.net
+  Notes:              
+------------------------------------------------------------------------*/
 
 DEFINE TEMP-TABLE ttTest
   FIELD Token AS CHARACTER.
 
-DEFINE INPUT  PARAMETER ipchrCadena AS CHARACTER  NO-UNDO.
+DEFINE INPUT  PARAMETER ipchrString AS CHARACTER  NO-UNDO.
 DEFINE OUTPUT PARAMETER TABLE FOR ttTest.
 
 DEFINE VARIABLE vintI AS INTEGER    NO-UNDO.
 
-DO vintI = 1 TO NUM-ENTRIES(ipchrCadena):
+DO vintI = 1 TO NUM-ENTRIES(ipchrString):
   CREATE ttTest.
-  ASSIGN ttTest.Token = ENTRY(vintI,ipchrCadena).
+  ASSIGN ttTest.Token = ENTRY(vintI,ipchrString).
 END.
 
 PROCEDURE OutTable:
-    DEFINE INPUT  PARAMETER ipchrCadena AS CHARACTER  NO-UNDO.
+    DEFINE INPUT  PARAMETER ipchrString AS CHARACTER  NO-UNDO.
     DEFINE OUTPUT PARAMETER TABLE FOR ttTest.
 
     DEFINE VARIABLE vintI AS INTEGER    NO-UNDO.
 
-    DO vintI = 1 TO NUM-ENTRIES(ipchrCadena):
+    DO vintI = 1 TO NUM-ENTRIES(ipchrString):
       CREATE ttTest.
-      ASSIGN ttTest.Token = ENTRY(vintI,ipchrCadena).
+      ASSIGN ttTest.Token = ENTRY(vintI,ipchrString).
     END.
 END PROCEDURE.
 

@@ -17,7 +17,8 @@
   Author:             Lic. Edgar Medrano Pérez
                       edgarmedrano@gmail.com
   Created:            2005.06.25
-  Company:            
+  Company:            Open 4GL webservices project
+                      http://o4glws.sourceforge.net
   Notes:              
 ------------------------------------------------------------------------*/
 {o4glws/procInfo.i}
@@ -148,6 +149,7 @@ DEFINE VARIABLE vhaWSDLRoot             AS HANDLE       NO-UNDO.
     END. /** for each ttProcedure **/
 
     /** Complex Types used for Responses **/
+    /*
     FOR EACH ttProcedure
       NO-LOCK:
       FOR EACH ttMethod
@@ -194,6 +196,7 @@ DEFINE VARIABLE vhaWSDLRoot             AS HANDLE       NO-UNDO.
     
       END. /** for each ttmethod **/    
     END.  /** for each ttProcedure **/
+    */
 
     /** Messages **/
     FOR EACH ttProcedure
@@ -203,38 +206,75 @@ DEFINE VARIABLE vhaWSDLRoot             AS HANDLE       NO-UNDO.
         NO-LOCK:
 
         /** Request **/
-        vhaWSDL:CREATE-NODE(vhaXMLParentNode, "message", "ELEMENT").
-        vhaXMLParentNode:SET-ATTRIBUTE("name", ttProcedure.cName + (IF ttMethod.cName = "" THEN "" ELSE "_") + ttMethod.cName).
-        vhaWSDLRoot:APPEND-CHILD(vhaXMLParentNode).
-
-        FOR EACH ttParam 
+        IF CAN-FIND(FIRST ttParam 
           WHERE ttParam.iProcId = ttMethod.iProcId
             AND (ttParam.cMethodName = ttMethod.cName
                 OR ttParam.cMethodName = "")
-            AND ttParam.cDirection <> "OUTPUT"
-          NO-LOCK
-          BY ttParam.cMethodName
-          BY ttParam.iSeq:
+            AND ttParam.cDirection <> "OUTPUT") THEN
+        DO:
+          vhaWSDL:CREATE-NODE(vhaXMLParentNode, "message", "ELEMENT").
+          vhaXMLParentNode:SET-ATTRIBUTE("name", ttProcedure.cName + (IF ttMethod.cName = "" THEN "" ELSE "_") + ttMethod.cName).
+          vhaWSDLRoot:APPEND-CHILD(vhaXMLParentNode).
 
-            vhaWSDL:CREATE-NODE(vhaXMLNode, "part", "ELEMENT").
-            vhaXMLNode:SET-ATTRIBUTE("name", (IF ttParam.cMethodName = "" THEN ttProcedure.cName + "_" ELSE "") + ttParam.cName).
+          FOR EACH ttParam 
+            WHERE ttParam.iProcId = ttMethod.iProcId
+              AND (ttParam.cMethodName = ttMethod.cName
+                  OR ttParam.cMethodName = "")
+              AND ttParam.cDirection <> "OUTPUT"
+            NO-LOCK
+            BY ttParam.cMethodName
+            BY ttParam.iSeq:
 
-            IF ttParam.cDataType <> "TABLE" THEN
-              vhaXMLNode:SET-ATTRIBUTE("type", SUBSTITUTE("s:&1", GetWSDLDataType(INPUT ttParam.cDataType))). 
-            ELSE 
-              vhaXMLNode:SET-ATTRIBUTE("type", SUBSTITUTE("s0:&1Array", ttProcedure.cName + "_" + ttParam.cName)).
+              vhaWSDL:CREATE-NODE(vhaXMLNode, "part", "ELEMENT").
+              vhaXMLNode:SET-ATTRIBUTE("name", (IF ttParam.cMethodName = "" THEN ttProcedure.cName + "_" ELSE "") + ttParam.cName).
 
-            vhaXMLParentNode:APPEND-CHILD(vhaXMLNode).
-        END. /** for each ttparam **/
+              IF ttParam.cDataType <> "TABLE" THEN
+                vhaXMLNode:SET-ATTRIBUTE("type", SUBSTITUTE("s:&1", GetWSDLDataType(INPUT ttParam.cDataType))). 
+              ELSE 
+                vhaXMLNode:SET-ATTRIBUTE("type", SUBSTITUTE("s0:&1Array", ttProcedure.cName + "_" + ttParam.cName)).
+
+              vhaXMLParentNode:APPEND-CHILD(vhaXMLNode).
+          END. /** for each ttparam **/
+        END.
 
         /** Response **/
-        vhaWSDL:CREATE-NODE(vhaXMLParentNode, "message", "ELEMENT").
-        vhaXMLParentNode:SET-ATTRIBUTE("name", SUBSTITUTE("&1Response", ttProcedure.cName + (IF ttMethod.cName = "" THEN "" ELSE "_") + ttMethod.cName)).
-        vhaWSDLRoot:APPEND-CHILD(vhaXMLParentNode).
+        IF CAN-FIND(FIRST ttParam 
+          WHERE ttParam.iProcId = ttMethod.iProcId
+            AND (ttParam.cMethodName = ttMethod.cName
+                OR ttParam.cMethodName = "")
+            AND ttParam.cDirection <> "INPUT") THEN
+        DO:
+          vhaWSDL:CREATE-NODE(vhaXMLParentNode, "message", "ELEMENT").
+          vhaXMLParentNode:SET-ATTRIBUTE("name", SUBSTITUTE("&1Response", ttProcedure.cName + (IF ttMethod.cName = "" THEN "" ELSE "_") + ttMethod.cName)).
+          vhaWSDLRoot:APPEND-CHILD(vhaXMLParentNode).
+
+          FOR EACH ttParam 
+            WHERE ttParam.iProcId = ttMethod.iProcId
+              AND (ttParam.cMethodName = ttMethod.cName
+                  OR ttParam.cMethodName = "")
+              AND ttParam.cDirection <> "INPUT"
+            NO-LOCK
+            BY ttParam.cMethodName
+            BY ttParam.iSeq:
+
+              vhaWSDL:CREATE-NODE(vhaXMLNode, "part", "ELEMENT").
+              vhaXMLNode:SET-ATTRIBUTE("name", (IF ttParam.cMethodName = "" THEN ttProcedure.cName + "_" ELSE "") + ttParam.cName).
+
+              IF ttParam.cDataType <> "TABLE" THEN
+                vhaXMLNode:SET-ATTRIBUTE("type", SUBSTITUTE("s:&1", GetWSDLDataType(INPUT ttParam.cDataType))). 
+              ELSE 
+                vhaXMLNode:SET-ATTRIBUTE("type", SUBSTITUTE("s0:&1Array", ttProcedure.cName + "_" + ttParam.cName)).
+
+              vhaXMLParentNode:APPEND-CHILD(vhaXMLNode).
+          END. /** for each ttparam **/
+        END.
+
+        /*
         vhaWSDL:CREATE-NODE(vhaXMLNode, "part", "ELEMENT").
         vhaXMLNode:SET-ATTRIBUTE("name", "return").
         vhaXMLNode:SET-ATTRIBUTE("type", SUBSTITUTE("s0:&1Result", ttProcedure.cName + (IF ttMethod.cName = "" THEN "" ELSE "_") + ttMethod.cName)). 
         vhaXMLParentNode:APPEND-CHILD(vhaXMLNode).
+        */
       END. /** for each ttmethod **/
     END.  /** for each ttProcedure **/
         

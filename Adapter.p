@@ -17,7 +17,8 @@
   Author:             Lic. Edgar Medrano Pérez 
                       edgarmedrano@gmail.com
   Created:            2005.06.18
-  Company:            
+  Company:            Open 4GL webservices project
+                      http://o4glws.sourceforge.net
   Notes:              
 ------------------------------------------------------------------------*/
 {o4glws/procInfo.i}
@@ -91,15 +92,17 @@ DEFINE STREAM strFile.
   {&WRITE-CODE} "  DEFINE VARIABLE vhndResponseBody    AS HANDLE    NO-UNDO. ~n".
   {&WRITE-CODE} "  DEFINE VARIABLE vhndRequestMessage  AS HANDLE    NO-UNDO. ~n".
   {&WRITE-CODE} "  DEFINE VARIABLE vhndResponseMessage AS HANDLE    NO-UNDO. ~n".
+  {&WRITE-CODE} "  DEFINE VARIABLE vchrEnvelopeNS      AS CHARACTER  NO-UNDO INITIAL ""s"".~n".
   {&WRITE-CODE} "  DEFINE VARIABLE vchrMessageNS       AS CHARACTER  NO-UNDO INITIAL ""n"".~n".
   {&WRITE-CODE} SUBSTITUTE("  DEFINE VARIABLE vchrWebService      AS CHARACTER  NO-UNDO INITIAL ""&1"".~n",ichNameSpace).
   {&WRITE-CODE} "~n".
   {&WRITE-CODE} "  vhndRequestEnv = findChild(vhndRequestDoc,""Envelope"").~n".
-  {&WRITE-CODE} "  vhndRequestHead = findChild(vhndRequestEnv,""Head"").~n".
+  {&WRITE-CODE} "  vhndRequestHead = findChild(vhndRequestEnv,""Header"").~n".
   {&WRITE-CODE} "  vhndRequestBody = findChild(vhndRequestEnv,""Body"").~n".
   {&WRITE-CODE} "~n".
-  {&WRITE-CODE} "  vhndResponseDoc = createResponse().~n".
+  {&WRITE-CODE} "  vhndResponseDoc = createResponse(vchrEnvelopeNS).~n".
   {&WRITE-CODE} "  vhndResponseEnv = findChild(vhndResponseDoc,""Envelope"").~n".
+  {&WRITE-CODE} "  vhndResponseHead = findChild(vhndResponseDoc,""Header"").~n".
   {&WRITE-CODE} "  vhndResponseBody = findChild(vhndResponseEnv,""Body"").~n".
   {&WRITE-CODE} "~n".
 
@@ -107,6 +110,7 @@ DEFINE STREAM strFile.
   DO:
     {&WRITE-CODE} SUBSTITUTE("  IF NOT SECURITY-TEST(vhndRequestHead,""&1"") THEN~n", ichSecurity).
     {&WRITE-CODE} "  DO:~n".
+    {&WRITE-CODE} "    vhndResponseMessage = createFault(vhndResponseBody,""soap:Server.SecurityFault"",""The supplied parameters didn't pass the security test."",THIS-PROCEDURE:FILE-NAME,vchrEnvelopeNS).~n".
     {&WRITE-CODE} "    RETURN.~n".
     {&WRITE-CODE} "  END.~n".
     {&WRITE-CODE} "~n".
@@ -117,6 +121,8 @@ DEFINE STREAM strFile.
   {&WRITE-CODE} "  DO vintI = 1 TO vhndRequestBody:NUM-CHILDREN:~n".
   {&WRITE-CODE} "      IF vhndRequestBody:GET-CHILD(vhndRequestMessage,vintI) THEN~n".
   {&WRITE-CODE} "      DO:~n".
+  {&WRITE-CODE} "        IF vhndRequestMessage:SUBTYPE = ""ELEMENT"" THEN~n".
+  {&WRITE-CODE} "        DO:~n".
   {&WRITE-CODE} "          /*Indentificar el metodo que sera llamado*/~n".
   {&WRITE-CODE} "          vchrMessage = ~n".
   {&WRITE-CODE} "             IF vhndRequestMessage:LOCAL-NAME = """" THEN ~n".
@@ -138,7 +144,7 @@ DEFINE STREAM strFile.
     				+ "              vhndResponseMessage = createChild(vhndResponseBody,""&1Response"",vchrMessageNS).~n"
     				+ "              vhndResponseMessage:SET-ATTRIBUTE(""xmlns:"" + vchrMessageNS,vchrWebService).~n"
     				+ "              RUN &1Adapter(vhndRequestMessage,vhndResponseMessage) NO-ERROR.~n"
-                    + "              DELETE PROCEDURE vhnd&2 NO-ERROR.~n"
+            + "              DELETE PROCEDURE vhnd&2 NO-ERROR.~n"
     				+ "            END.~n"
     				, ttProcedure.cName + (IF ttMethod.cName = "" THEN "" ELSE "_") + ttMethod.cName
                     , ichNameSpace + STRING(ttMethod.iProcId)).
@@ -146,7 +152,12 @@ DEFINE STREAM strFile.
   END. /** for each ttProcedure **/
 
 	/*Codigo posterior a la identificacion*/
+  {&WRITE-CODE} "            OTHERWISE~n".
+  {&WRITE-CODE} "            DO:~n". 
+  {&WRITE-CODE} "              vhndResponseMessage = createFault(vhndResponseBody,""soap:Server.UnknownMethod"",""The specified method is unknown."",THIS-PROCEDURE:FILE-NAME,vchrEnvelopeNS).~n".
+  {&WRITE-CODE} "            END.~n".
   {&WRITE-CODE} "          END CASE.~n".
+  {&WRITE-CODE} "        END.~n".
   {&WRITE-CODE} "      END.~n".
   {&WRITE-CODE} "  END.~n".
   {&WRITE-CODE} "~n".
@@ -211,6 +222,7 @@ DEFINE STREAM strFile.
           END. /** can-find **/
 
           /** Declarar handlers para leer/escribir temporales **/
+          /*
           IF CAN-FIND(FIRST ttParam 
               WHERE ttParam.iProcId = ttMethod.iProcId
                 AND ttParam.cMethodName = ttMethod.cName
@@ -229,6 +241,7 @@ DEFINE STREAM strFile.
 
               {&WRITE-CODE} "~n".
           END. /** can-find **/
+          */
 
           /** Inicializar valores de variables de entrada/salida **/
           IF CAN-FIND(FIRST ttParam 
@@ -253,6 +266,7 @@ DEFINE STREAM strFile.
           END. /** can-find **/
 
           /** Inicializar tablas de entrada/salida **/
+          /*
           IF CAN-FIND(FIRST ttParam 
               WHERE ttParam.iProcId = ttMethod.iProcId
                 AND ttParam.cMethodName = ttMethod.cName
@@ -267,7 +281,7 @@ DEFINE STREAM strFile.
                 NO-LOCK
                 BY ttParam.iSeq:
                   {&WRITE-CODE} SUBSTITUTE(
-                                  "   CREATE BUFFER hnd&1 FOR TABLE ""&1"".~n"
+                                  "   ASSIGN hnd&1 = BUFFER &1:HANDLE.~n"
                                 , ttProcedure.cName + "_" + ttParam.cName).
 
                 IF ttParam.cDirection <> "OUTPUT" THEN
@@ -280,7 +294,29 @@ DEFINE STREAM strFile.
 
               {&WRITE-CODE} "~n".
           END. /** can-find **/
+          */
+          IF CAN-FIND(FIRST ttParam 
+              WHERE ttParam.iProcId = ttMethod.iProcId
+                AND ttParam.cMethodName = ttMethod.cName
+                AND ttParam.cDataType = "TABLE"
+                AND ttParam.cDirection <> "OUTPUT") THEN
+          DO:                                    
+              {&WRITE-CODE} "   /*Inicializar tablas de entrada/salida*/~n".
 
+              FOR EACH ttParam 
+                WHERE ttParam.iProcId = ttMethod.iProcId
+                  AND ttParam.cMethodName = ttMethod.cName
+                  AND ttParam.cDataType = "TABLE"
+                  AND ttParam.cDirection <> "OUTPUT"
+                NO-LOCK
+                BY ttParam.iSeq:
+                {&WRITE-CODE} SUBSTITUTE(
+                                "   getInTable(iphndRequestMessage,""&1Array"",(BUFFER &1:HANDLE)).~n"
+                              , ttProcedure.cName + "_" + ttParam.cName).
+              END. /** for each ttparam **/
+
+              {&WRITE-CODE} "~n".
+          END. /** can-find **/
 
           /*Llamar al procedimiento*/
           ASSIGN vchrComma = " ".
@@ -335,7 +371,8 @@ DEFINE STREAM strFile.
                 BY ttParam.iSeq:
                   IF ttParam.cDataType = "TABLE" THEN
                   DO:
-                      {&WRITE-CODE} SUBSTITUTE("   setOutTable(iphndResponseMessage,""&1Array"",hnd&2).~n", (IF ttParam.cMethodName = "" THEN ttProcedure.cName + "_" ELSE "") + ttParam.cName, ttProcedure.cName + "_" + ttParam.cName).
+                      /*{&WRITE-CODE} SUBSTITUTE("   setOutTable(iphndResponseMessage,""&1Array"",hnd&2).~n", (IF ttParam.cMethodName = "" THEN ttProcedure.cName + "_" ELSE "") + ttParam.cName, ttProcedure.cName + "_" + ttParam.cName).*/
+                      {&WRITE-CODE} SUBSTITUTE("   setOutTable(iphndResponseMessage,""&1Array"",(BUFFER &2:HANDLE)).~n", (IF ttParam.cMethodName = "" THEN ttProcedure.cName + "_" ELSE "") + ttParam.cName, ttProcedure.cName + "_" + ttParam.cName).
                   END.
                   ELSE
                   DO:

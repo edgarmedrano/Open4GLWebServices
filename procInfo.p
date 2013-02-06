@@ -13,7 +13,8 @@
   Author:             Lic. Edgar Medrano Pérez 
                       edgarmedrano@gmail.com
   Created:            2005.06.25
-  Company:            
+  Company:            Open 4GL webservices project
+                      http://o4glws.sourceforge.net
   Notes:              
 ------------------------------------------------------------------------*/
 {o4glws/procInfo.i}

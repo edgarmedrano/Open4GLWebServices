@@ -34,19 +34,22 @@ PROCEDURE PROCESS-REQUEST:
   DEFINE VARIABLE vhndResponseBody    AS HANDLE    NO-UNDO. 
   DEFINE VARIABLE vhndRequestMessage  AS HANDLE    NO-UNDO. 
   DEFINE VARIABLE vhndResponseMessage AS HANDLE    NO-UNDO. 
+  DEFINE VARIABLE vchrEnvelopeNS      AS CHARACTER  NO-UNDO INITIAL "s".
   DEFINE VARIABLE vchrMessageNS       AS CHARACTER  NO-UNDO INITIAL "n".
   DEFINE VARIABLE vchrWebService      AS CHARACTER  NO-UNDO INITIAL "test".
 
   vhndRequestEnv = findChild(vhndRequestDoc,"Envelope").
-  vhndRequestHead = findChild(vhndRequestEnv,"Head").
+  vhndRequestHead = findChild(vhndRequestEnv,"Header").
   vhndRequestBody = findChild(vhndRequestEnv,"Body").
 
-  vhndResponseDoc = createResponse().
+  vhndResponseDoc = createResponse(vchrEnvelopeNS).
   vhndResponseEnv = findChild(vhndResponseDoc,"Envelope").
+  vhndResponseHead = findChild(vhndResponseDoc,"Header").
   vhndResponseBody = findChild(vhndResponseEnv,"Body").
 
   IF NOT SECURITY-TEST(vhndRequestHead,"o4glws/sample/securityTemplate.p") THEN
   DO:
+    vhndResponseMessage = createFault(vhndResponseBody,"soap:Server.SecurityFault","The supplied parameters didn't pass the security test.",THIS-PROCEDURE:FILE-NAME,vchrEnvelopeNS).
     RETURN.
   END.
 
@@ -55,6 +58,8 @@ PROCEDURE PROCESS-REQUEST:
   DO vintI = 1 TO vhndRequestBody:NUM-CHILDREN:
       IF vhndRequestBody:GET-CHILD(vhndRequestMessage,vintI) THEN
       DO:
+        IF vhndRequestMessage:SUBTYPE = "ELEMENT" THEN
+        DO:
           /*Indentificar el metodo que sera llamado*/
           vchrMessage = 
              IF vhndRequestMessage:LOCAL-NAME = "" THEN 
@@ -91,7 +96,12 @@ PROCEDURE PROCESS-REQUEST:
               RUN TEST_OutTableAdapter(vhndRequestMessage,vhndResponseMessage) NO-ERROR.
               DELETE PROCEDURE vhndtest1 NO-ERROR.
             END.
+            OTHERWISE
+            DO:
+              vhndResponseMessage = createFault(vhndResponseBody,"soap:Server.UnknownMethod","The specified method is unknown.",THIS-PROCEDURE:FILE-NAME,vchrEnvelopeNS).
+            END.
           END CASE.
+        END.
       END.
   END.
 
@@ -107,30 +117,13 @@ PROCEDURE TESTAdapter:
     DEFINE  INPUT PARAMETER iphndRequestMessage  AS HANDLE     NO-UNDO.
     DEFINE  INPUT PARAMETER iphndResponseMessage AS HANDLE     NO-UNDO.
 
-   /*Declarar variables de salida*/
-   DEFINE VARIABLE oplogValida AS LOGICAL    NO-UNDO.
-
-   /*Declarar handlers para leer/escribir temporales*/
-   DEFINE VARIABLE hndTEST_ttTest AS HANDLE    NO-UNDO.
-
-   /*Inicializar tablas de entrada/salida*/
-   CREATE BUFFER hndTEST_ttTest FOR TABLE "TEST_ttTest".
-
    RUN o4glws/sample/test.p PERSISTENT SET vhndtest1 (
-        getInCHARACTER(iphndRequestMessage,"TEST_ipchrUsername")
-       ,getInCHARACTER(iphndRequestMessage,"TEST_ipchrCadena")
-       ,getInCHARACTER(iphndRequestMessage,"TEST_ipchrPassword")
+        getInCHARACTER(iphndRequestMessage,"TEST_ipchrString")
        ,OUTPUT TABLE TEST_ttTest
-       ,getInCHARACTER(iphndRequestMessage,"TEST_ipchrType")
-       ,getInCHARACTER(iphndRequestMessage,"TEST_ipchrNonce")
-       ,getInDATE(iphndRequestMessage,"TEST_ipdatCreated")
-       ,getInINTEGER(iphndRequestMessage,"TEST_ipintCreated")
-       ,OUTPUT oplogValida
        ) NO-ERROR.
 
    /*Copiar los valores de las variables de salida*/
-   setOutTable(iphndResponseMessage,"TEST_ttTestArray",hndTEST_ttTest).
-   setOutLOGICAL(iphndResponseMessage,"oplogValida",oplogValida).
+   setOutTable(iphndResponseMessage,"TEST_ttTestArray",(BUFFER TEST_ttTest:HANDLE)).
 
 END PROCEDURE.
 
@@ -141,12 +134,8 @@ PROCEDURE TEST_InTableAdapter:
    /*Declarar variables de salida*/
    DEFINE VARIABLE opchrCadena AS CHARACTER    NO-UNDO.
 
-   /*Declarar handlers para leer/escribir temporales*/
-   DEFINE VARIABLE hndTEST_ttTest AS HANDLE    NO-UNDO.
-
    /*Inicializar tablas de entrada/salida*/
-   CREATE BUFFER hndTEST_ttTest FOR TABLE "TEST_ttTest".
-   getInTable(iphndRequestMessage,"TEST_ttTestArray",hndTEST_ttTest).
+   getInTable(iphndRequestMessage,"TEST_ttTestArray",(BUFFER TEST_ttTest:HANDLE)).
 
    RUN TEST(iphndRequestMessage,iphndResponseMessage).
    RUN TEST_InTable IN vhndtest1 (
@@ -183,20 +172,14 @@ PROCEDURE TEST_OutTableAdapter:
     DEFINE  INPUT PARAMETER iphndRequestMessage  AS HANDLE     NO-UNDO.
     DEFINE  INPUT PARAMETER iphndResponseMessage AS HANDLE     NO-UNDO.
 
-   /*Declarar handlers para leer/escribir temporales*/
-   DEFINE VARIABLE hndTEST_ttTest AS HANDLE    NO-UNDO.
-
-   /*Inicializar tablas de entrada/salida*/
-   CREATE BUFFER hndTEST_ttTest FOR TABLE "TEST_ttTest".
-
    RUN TEST(iphndRequestMessage,iphndResponseMessage).
    RUN TEST_OutTable IN vhndtest1 (
-        getInCHARACTER(iphndRequestMessage,"ipchrCadena")
+        getInCHARACTER(iphndRequestMessage,"ipchrString")
        ,OUTPUT TABLE TEST_ttTest
        ) NO-ERROR.
 
    /*Copiar los valores de las variables de salida*/
-   setOutTable(iphndResponseMessage,"ttTestArray",hndTEST_ttTest).
+   setOutTable(iphndResponseMessage,"ttTestArray",(BUFFER TEST_ttTest:HANDLE)).
 
 END PROCEDURE.
 

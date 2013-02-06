@@ -4,20 +4,21 @@
 &Scoped-define FRAME-NAME Dialog-Frame
 &ANALYZE-SUSPEND _UIB-CODE-BLOCK _CUSTOM _DEFINITIONS Dialog-Frame 
 /*------------------------------------------------------------------------
-
-  File: 
-
-  Description: 
-
-  Input Parameters:
-      <none>
-
-  Output Parameters:
-      <none>
-
-  Author: 
-
-  Created: 
+  File:               procDlg.w
+  Description:        This is a dialog to choose which procedures and 
+                      internal procedures to include in the project. 
+  In-Out Parameters:  ttProcedure      Procedures.                    
+                      ttMethod         Internal procedures and Functions 
+                                       to include.                
+                      ttParam          Procedure Parameters.                                         
+                      ttTable          Temp-tables used by the procedures.                  
+                      ttField          Temp-tables Fields.                           
+  Author:             Lic. Edgar Medrano Pérez 
+                      edgarmedrano@gmail.com
+  Created:            2005.06.14
+  Company:            Open 4GL webservices project
+                      http://o4glws.sourceforge.net
+  Notes:               
 ------------------------------------------------------------------------*/
 /*          This .W file was created with the Progress AppBuilder.       */
 /*----------------------------------------------------------------------*/
@@ -40,16 +41,16 @@ END PROCEDURE.
 {o4glws/procInfo.i}
 
 DEFINE TEMP-TABLE ttProcedureCopy LIKE ttProcedure.
-DEFINE TEMP-TABLE ttMethodCopy LIKE ttMethod.
-DEFINE TEMP-TABLE ttParamCopy LIKE ttParam.
-DEFINE TEMP-TABLE ttTableCopy LIKE ttTable.
-DEFINE TEMP-TABLE ttFieldCopy LIKE ttField.
+DEFINE TEMP-TABLE ttMethodCopy    LIKE ttMethod.
+DEFINE TEMP-TABLE ttParamCopy     LIKE ttParam.
+DEFINE TEMP-TABLE ttTableCopy     LIKE ttTable.
+DEFINE TEMP-TABLE ttFieldCopy     LIKE ttField.
 
 DEFINE TEMP-TABLE ttProcedureAux LIKE ttProcedure.
-DEFINE TEMP-TABLE ttMethodAux LIKE ttMethod.
-DEFINE TEMP-TABLE ttParamAux LIKE ttParam.
-DEFINE TEMP-TABLE ttTableAux LIKE ttTable.
-DEFINE TEMP-TABLE ttFieldAux LIKE ttField.
+DEFINE TEMP-TABLE ttMethodAux    LIKE ttMethod.
+DEFINE TEMP-TABLE ttParamAux     LIKE ttParam.
+DEFINE TEMP-TABLE ttTableAux     LIKE ttTable.
+DEFINE TEMP-TABLE ttFieldAux     LIKE ttField.
 
 /* Parameters Definitions ---                                           */
 DEFINE INPUT-OUTPUT  PARAMETER TABLE FOR ttProcedure.

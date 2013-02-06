@@ -1,9 +1,11 @@
 /*------------------------------------------------------------------------
   File:               procInfo.I
   Description:        Temp-table definitions used by all programs.
-  Author:             Lic. Edgar Medrano Perez
+  Author:             Lic. Edgar Medrano Perez 
+                      edgarmedrano@gmail.com
   Created:            2005.06.18
-  Company:            
+  Company:            Open 4GL webservices project
+                      http://o4glws.sourceforge.net
   Notes:
 ------------------------------------------------------------------------*/
 
