@@ -387,7 +387,8 @@ DEFINE STREAM strFile.
                   END.
                   ELSE
                   DO:
-                      {&WRITE-CODE} SUBSTITUTE("   setOut&1(iphndResponseMessage,""&2"",&2).~n", ttParam.cDataType, ttParam.cName).
+                      /*{&WRITE-CODE} SUBSTITUTE("   setOut&1(iphndResponseMessage,""&2"",&2).~n", ttParam.cDataType, ttParam.cName).*/
+                      {&WRITE-CODE} SUBSTITUTE("   setOut&1(iphndResponseMessage,""&2"",&2).~n", ttParam.cDataType, (IF ttParam.cMethodName = "" THEN ttProcedure.cName + "_" ELSE "") + ttParam.cName).
                   END.
               END. /** for each ttparam **/
 

@@ -88,19 +88,37 @@ END FUNCTION.
 
 /* The next functions read the input parameters from the request node */
 FUNCTION getInCharacter RETURNS CHARACTER (INPUT iphndMessage AS HANDLE, INPUT ipchrParamName AS CHARACTER):
-    DEFINE VARIABLE vhndNode AS HANDLE    NO-UNDO. 
-    DEFINE VARIABLE vhndChild AS HANDLE    NO-UNDO. 
-
+    DEFINE VARIABLE vhndNode        AS HANDLE    NO-UNDO. 
+    DEFINE VARIABLE vhndChild       AS HANDLE    NO-UNDO. 
+    DEFINE VARIABLE vchrId          AS CHARACTER  NO-UNDO INITIAL "".
+    DEFINE VARIABLE vhndBodyNode    AS HANDLE     NO-UNDO. 
+    
     CREATE X-NODEREF vhndChild.
 
     vhndNode = findChild(iphndMessage,ipchrParamName).
     IF VALID-HANDLE(vhndNode) THEN
     DO:
-      IF vhndNode:NUM-CHILDREN = 1 THEN
+      vchrId = vhndNode:GET-ATTRIBUTE("href").
+      IF vchrId <> "" THEN
       DO:
-        vhndNode:GET-CHILD(vhndChild,1).
-        RETURN vhndChild:NODE-VALUE.
+        IF NUM-ENTRIES(vchrId,"#") >= 2 THEN
+        DO:
+          vchrId = ENTRY(2,vchrId,"#").
+        END.
+      
+        CREATE X-NODEREF vhndBodyNode.
+        iphndMessage:GET-PARENT(vhndBodyNode).
+        vhndNode = findChildWithId(vhndBodyNode,"multiRef",vchrId).
       END.
+  
+      IF VALID-HANDLE(vhndNode) THEN
+      DO:
+        IF vhndNode:NUM-CHILDREN = 1 THEN
+        DO:
+          vhndNode:GET-CHILD(vhndChild,1).
+          RETURN vhndChild:NODE-VALUE.
+        END.        
+      END.      
     END.
 
     RETURN "".
